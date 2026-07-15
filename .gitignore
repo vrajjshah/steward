@@ -1,0 +1,22 @@
+.DS_Store
+.env
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+dist/
+build/
+*.egg-info/
+data/live_results.json
+data/cost_latency.jsonl
+
+# Local audit state is deliberately append-only but not a source artifact.
+# The Ed25519 public key is the exception: it is safe to publish alongside an
+# exported ledger so an independent reviewer can verify signatures offline.
+.steward/*
+!.steward/
+!.steward/*.pub
+
+# internal planning notes — kept locally, never in the submission repo
+research/
