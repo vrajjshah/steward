@@ -1,0 +1,154 @@
+{
+  "schema_version": "0.1",
+  "fleet_name": "Steward Synthetic Enterprise Fleet",
+  "matching_contract": {
+    "finding_identity": ["check_type", "agent_id"],
+    "rule_id_note": "rule_id documents the planted policy, but evaluators should match findings by check_type, agent_id, and required_tool_ids so implementation-specific rule labels do not make the golden set brittle.",
+    "tool_ids_field": "required_tool_ids",
+    "citation_contract": "Every required_evidence entity must be present in the finding evidence. Delegation-edge IDs use the literal source_agent_id->target_agent_id form."
+  },
+  "expected_counts": {
+    "sod": 4,
+    "over_privilege": 1,
+    "escalation": 1,
+    "orphan": 1,
+    "total": 7
+  },
+  "expected_findings": [
+    {
+      "key": "sod:invoice_bot:finance_create_vendor_approve_payment",
+      "check_type": "sod",
+      "agent_id": "invoice_bot",
+      "source": "deterministic",
+      "rule_id": "finance_create_vendor_approve_payment",
+      "required_tool_ids": ["create_vendor", "approve_payment"],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "invoice_bot"},
+        {"entity_type": "tool", "entity_id": "create_vendor"},
+        {"entity_type": "tool", "entity_id": "approve_payment"}
+      ]
+    },
+    {
+      "key": "sod:payroll_bot:hr_add_employee_run_payroll",
+      "check_type": "sod",
+      "agent_id": "payroll_bot",
+      "source": "deterministic",
+      "rule_id": "hr_add_employee_run_payroll",
+      "required_tool_ids": ["add_employee", "run_payroll"],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "payroll_bot"},
+        {"entity_type": "tool", "entity_id": "add_employee"},
+        {"entity_type": "tool", "entity_id": "run_payroll"}
+      ]
+    },
+    {
+      "key": "sod:access_bot:it_request_access_grant_access",
+      "check_type": "sod",
+      "agent_id": "access_bot",
+      "source": "deterministic",
+      "rule_id": "it_request_access_grant_access",
+      "required_tool_ids": ["request_access", "grant_access"],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "access_bot"},
+        {"entity_type": "tool", "entity_id": "request_access"},
+        {"entity_type": "tool", "entity_id": "grant_access"}
+      ]
+    },
+    {
+      "key": "sod:support_bot:sensitive_data_external_egress",
+      "check_type": "sod",
+      "agent_id": "support_bot",
+      "source": "deterministic",
+      "rule_id": "sensitive_data_external_egress",
+      "required_tool_ids": ["read_customer_pii", "send_external_email"],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "support_bot"},
+        {"entity_type": "tool", "entity_id": "read_customer_pii"},
+        {"entity_type": "tool", "entity_id": "send_external_email"}
+      ]
+    },
+    {
+      "key": "over_privilege:report_bot:unused_delete_and_export",
+      "check_type": "over_privilege",
+      "agent_id": "report_bot",
+      "source": "deterministic",
+      "rule_id": "unused_granted_tools",
+      "required_tool_ids": ["delete_records", "export_data"],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "report_bot"},
+        {"entity_type": "tool", "entity_id": "delete_records"},
+        {"entity_type": "tool", "entity_id": "export_data"}
+      ]
+    },
+    {
+      "key": "escalation:summary_bot:delegated_approve_payment",
+      "check_type": "escalation",
+      "agent_id": "summary_bot",
+      "source": "deterministic",
+      "rule_id": "delegated_high_risk_payment_approval",
+      "required_tool_ids": ["approve_payment"],
+      "delegation_path": ["summary_bot", "finance_bot"],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "summary_bot"},
+        {"entity_type": "delegation_edge", "entity_id": "summary_bot->finance_bot"},
+        {"entity_type": "agent", "entity_id": "finance_bot"},
+        {"entity_type": "tool", "entity_id": "approve_payment"}
+      ]
+    },
+    {
+      "key": "orphan:legacy_bot:no_owner",
+      "check_type": "orphan",
+      "agent_id": "legacy_bot",
+      "source": "deterministic",
+      "rule_id": "missing_owner",
+      "required_tool_ids": [],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "legacy_bot"}
+      ]
+    }
+  ],
+  "llm_tier_matching_contract": {
+    "finding_source": "llm_generalized",
+    "finding_identity": ["check_type", "agent_id"],
+    "note": "This bucket measures the offline model fixture/generalization path separately. It is not part of the deterministic precision gate."
+  },
+  "llm_tier_expected_findings": [
+    {
+      "key": "sod:sales_bot:crm_external_egress",
+      "check_type": "sod",
+      "agent_id": "sales_bot",
+      "source": "llm_generalized",
+      "rule_id": "llm_toxic_read_crm_send_external_email",
+      "required_tool_ids": ["read_crm", "send_external_email"],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "sales_bot"},
+        {"entity_type": "tool", "entity_id": "read_crm"},
+        {"entity_type": "tool", "entity_id": "send_external_email"}
+      ]
+    }
+  ],
+  "llm_tier_measurement": {
+    "gated": false,
+    "thresholds": {
+      "precision": 0.5,
+      "recall": 1.0,
+      "citation_validity": 1.0
+    },
+    "note": "The offline fixture must recover the planted novel SalesBot combination. This is a regression measurement for the LLM integration contract, not a claim of real-world model accuracy."
+  },
+  "clean_agent_ids": [
+    "finance_bot",
+    "knowledge_bot",
+    "sales_assist_bot",
+    "inventory_bot",
+    "compliance_bot",
+    "data_quality_bot",
+    "travel_bot",
+    "contract_bot",
+    "scheduler_bot",
+    "engineering_bot",
+    "monitoring_bot",
+    "onboarding_bot",
+    "research_bot"
+  ]
+}

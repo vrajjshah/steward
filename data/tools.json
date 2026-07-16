@@ -1,0 +1,175 @@
+{
+  "schema_version": "0.1",
+  "tools": [
+    {
+      "id": "create_vendor",
+      "name": "Create vendor record",
+      "description": "Adds a supplier or payee to the vendor master."
+    },
+    {
+      "id": "approve_payment",
+      "name": "Approve payment",
+      "description": "Authorizes a queued payment for release."
+    },
+    {
+      "id": "add_employee",
+      "name": "Add employee",
+      "description": "Creates an employee record in the people system."
+    },
+    {
+      "id": "run_payroll",
+      "name": "Run payroll",
+      "description": "Starts a payroll calculation and payment run."
+    },
+    {
+      "id": "request_access",
+      "name": "Request application access",
+      "description": "Submits an access request for an employee."
+    },
+    {
+      "id": "grant_access",
+      "name": "Grant application access",
+      "description": "Assigns a requested application role to an employee."
+    },
+    {
+      "id": "read_db",
+      "name": "Read analytics database",
+      "description": "Runs read-only queries against the analytics database."
+    },
+    {
+      "id": "delete_records",
+      "name": "Delete database records",
+      "description": "Permanently removes selected records from the analytics database."
+    },
+    {
+      "id": "export_data",
+      "name": "Export data",
+      "description": "Exports selected analytics data to a file."
+    },
+    {
+      "id": "read_customer_pii",
+      "name": "Read customer profile details",
+      "description": "Retrieves customer contact and account information for a support case."
+    },
+    {
+      "id": "send_external_email",
+      "name": "Send email outside the company",
+      "description": "Delivers an email to an address outside the organization."
+    },
+    {
+      "id": "read_knowledge_base",
+      "name": "Read internal knowledge base",
+      "description": "Searches and retrieves approved internal knowledge articles."
+    },
+    {
+      "id": "read_archive",
+      "name": "Read retired product archive",
+      "description": "Retrieves documents from the retired product archive."
+    },
+    {
+      "id": "read_crm",
+      "name": "Read CRM account context",
+      "description": "Retrieves sales account notes and opportunity context."
+    },
+    {
+      "id": "draft_customer_email",
+      "name": "Draft customer email",
+      "description": "Creates a message draft for a sales representative to review and send."
+    },
+    {
+      "id": "read_inventory",
+      "name": "Read inventory",
+      "description": "Retrieves current warehouse inventory and stock counts."
+    },
+    {
+      "id": "update_inventory",
+      "name": "Update inventory count",
+      "description": "Updates a warehouse stock count after reconciliation."
+    },
+    {
+      "id": "read_policy_library",
+      "name": "Read policy library",
+      "description": "Retrieves published company policy documents."
+    },
+    {
+      "id": "create_audit_ticket",
+      "name": "Create audit ticket",
+      "description": "Opens a follow-up item for an audit reviewer."
+    },
+    {
+      "id": "read_analytics",
+      "name": "Read analytics extract",
+      "description": "Retrieves an approved analytics extract for review."
+    },
+    {
+      "id": "validate_data",
+      "name": "Validate data rules",
+      "description": "Checks an analytics extract against defined quality rules."
+    },
+    {
+      "id": "create_travel_request",
+      "name": "Create travel request",
+      "description": "Creates a travel request for later manager review."
+    },
+    {
+      "id": "read_contract_repository",
+      "name": "Read contract repository",
+      "description": "Retrieves approved contract templates and prior agreements."
+    },
+    {
+      "id": "draft_contract",
+      "name": "Draft contract language",
+      "description": "Prepares contract wording for legal review."
+    },
+    {
+      "id": "read_calendar",
+      "name": "Read team calendar",
+      "description": "Retrieves availability from internal team calendars."
+    },
+    {
+      "id": "create_calendar_event",
+      "name": "Create internal calendar event",
+      "description": "Creates an internal meeting hold on selected calendars."
+    },
+    {
+      "id": "read_source_repository",
+      "name": "Read source repository",
+      "description": "Retrieves source files and issue context from an engineering repository."
+    },
+    {
+      "id": "create_issue",
+      "name": "Create engineering issue",
+      "description": "Opens a work item for an engineering maintainer."
+    },
+    {
+      "id": "read_system_metrics",
+      "name": "Read service metrics",
+      "description": "Retrieves current service health and performance metrics."
+    },
+    {
+      "id": "create_incident_ticket",
+      "name": "Create incident ticket",
+      "description": "Opens an incident ticket for the on-call team."
+    },
+    {
+      "id": "create_onboarding_checklist",
+      "name": "Create onboarding checklist",
+      "description": "Creates a standard internal checklist for a new hire."
+    },
+    {
+      "id": "send_internal_message",
+      "name": "Send internal message",
+      "description": "Sends a reminder through the company internal messaging system."
+    },
+    {
+      "id": "web_search",
+      "name": "Search public web",
+      "description": "Searches publicly available web pages."
+    },
+    {
+      "id": "summarize_document",
+      "name": "Summarize document",
+      "description": "Produces a concise summary of a supplied non-confidential document."
+    }
+  ]
+}

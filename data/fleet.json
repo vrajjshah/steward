@@ -1,0 +1,195 @@
+{
+  "schema_version": "0.1",
+  "fleet_name": "Steward Synthetic Enterprise Fleet",
+  "agents": [
+    {
+      "id": "invoice_bot",
+      "name": "InvoiceBot",
+      "owner": "Maya Chen, Finance Operations",
+      "description": "Creates vendor records and routes supplier invoices for payment processing.",
+      "granted_tools": ["create_vendor", "approve_payment"],
+      "can_delegate_to": [],
+      "usage_log": ["create_vendor", "approve_payment"]
+    },
+    {
+      "id": "payroll_bot",
+      "name": "PayrollBot",
+      "owner": "Jordan Ellis, People Operations",
+      "description": "Maintains employee records and prepares the biweekly payroll run.",
+      "granted_tools": ["add_employee", "run_payroll"],
+      "can_delegate_to": [],
+      "usage_log": ["add_employee", "run_payroll"]
+    },
+    {
+      "id": "access_bot",
+      "name": "AccessBot",
+      "owner": "Priya Nair, IT Identity",
+      "description": "Helps employees request the application access they need for their work.",
+      "granted_tools": ["request_access", "grant_access"],
+      "can_delegate_to": [],
+      "usage_log": ["request_access", "grant_access"]
+    },
+    {
+      "id": "report_bot",
+      "name": "ReportBot",
+      "owner": "Noah Williams, Analytics",
+      "description": "Reads analytics data and prepares the weekly operating report.",
+      "granted_tools": ["read_db", "delete_records", "export_data"],
+      "can_delegate_to": [],
+      "usage_log": ["read_db"]
+    },
+    {
+      "id": "support_bot",
+      "name": "SupportBot",
+      "owner": "Elena Rodriguez, Customer Support",
+      "description": "Investigates customer support cases and sends resolution updates to customers.",
+      "granted_tools": ["read_customer_pii", "send_external_email"],
+      "can_delegate_to": [],
+      "usage_log": ["read_customer_pii", "send_external_email"]
+    },
+    {
+      "id": "summary_bot",
+      "name": "SummaryBot",
+      "owner": "Avery Thompson, Executive Operations",
+      "description": "Reads approved internal knowledge and produces concise leadership summaries.",
+      "granted_tools": ["read_knowledge_base"],
+      "can_delegate_to": ["finance_bot"],
+      "usage_log": ["read_knowledge_base"]
+    },
+    {
+      "id": "finance_bot",
+      "name": "FinanceBot",
+      "owner": "Maya Chen, Finance Operations",
+      "description": "Approves payments that have completed the finance review workflow.",
+      "granted_tools": ["approve_payment"],
+      "can_delegate_to": [],
+      "usage_log": ["approve_payment"]
+    },
+    {
+      "id": "legacy_bot",
+      "name": "LegacyBot",
+      "owner": null,
+      "description": "Answers questions from the retired product archive.",
+      "granted_tools": ["read_archive"],
+      "can_delegate_to": [],
+      "usage_log": ["read_archive"]
+    },
+    {
+      "id": "knowledge_bot",
+      "name": "KnowledgeBot",
+      "owner": "Samir Patel, Internal Enablement",
+      "description": "Finds approved answers in the internal knowledge base for employees.",
+      "granted_tools": ["read_knowledge_base"],
+      "can_delegate_to": [],
+      "usage_log": ["read_knowledge_base"]
+    },
+    {
+      "id": "sales_assist_bot",
+      "name": "SalesAssistBot",
+      "owner": "Talia Brooks, Revenue Operations",
+      "description": "Looks up account context and drafts follow-up messages for sales representatives.",
+      "granted_tools": ["read_crm", "draft_customer_email"],
+      "can_delegate_to": [],
+      "usage_log": ["read_crm", "draft_customer_email"]
+    },
+    {
+      "id": "sales_bot",
+      "name": "SalesBot",
+      "owner": "Talia Brooks, Revenue Operations",
+      "description": "Looks up CRM account context and sends personalized sales outreach to prospective customers.",
+      "granted_tools": ["read_crm", "send_external_email"],
+      "can_delegate_to": [],
+      "usage_log": ["read_crm", "send_external_email"]
+    },
+    {
+      "id": "inventory_bot",
+      "name": "InventoryBot",
+      "owner": "Diego Morales, Supply Chain",
+      "description": "Checks current inventory and updates stock counts after warehouse reconciliation.",
+      "granted_tools": ["read_inventory", "update_inventory"],
+      "can_delegate_to": [],
+      "usage_log": ["read_inventory", "update_inventory"]
+    },
+    {
+      "id": "compliance_bot",
+      "name": "ComplianceBot",
+      "owner": "Grace Kim, Risk and Compliance",
+      "description": "Reads policy material and opens audit follow-up tickets for reviewers.",
+      "granted_tools": ["read_policy_library", "create_audit_ticket"],
+      "can_delegate_to": [],
+      "usage_log": ["read_policy_library", "create_audit_ticket"]
+    },
+    {
+      "id": "data_quality_bot",
+      "name": "DataQualityBot",
+      "owner": "Noah Williams, Analytics",
+      "description": "Reviews analytics extracts and validates data-quality rules.",
+      "granted_tools": ["read_analytics", "validate_data"],
+      "can_delegate_to": [],
+      "usage_log": ["read_analytics", "validate_data"]
+    },
+    {
+      "id": "travel_bot",
+      "name": "TravelBot",
+      "owner": "Morgan Lee, Workplace Services",
+      "description": "Creates travel requests for employees before they are reviewed by a manager.",
+      "granted_tools": ["create_travel_request"],
+      "can_delegate_to": [],
+      "usage_log": ["create_travel_request"]
+    },
+    {
+      "id": "contract_bot",
+      "name": "ContractBot",
+      "owner": "Riley Foster, Legal Operations",
+      "description": "Finds prior agreements and drafts contract language for legal review.",
+      "granted_tools": ["read_contract_repository", "draft_contract"],
+      "can_delegate_to": [],
+      "usage_log": ["read_contract_repository", "draft_contract"]
+    },
+    {
+      "id": "scheduler_bot",
+      "name": "SchedulerBot",
+      "owner": "Avery Thompson, Executive Operations",
+      "description": "Checks team calendars and creates internal meeting holds.",
+      "granted_tools": ["read_calendar", "create_calendar_event"],
+      "can_delegate_to": [],
+      "usage_log": ["read_calendar", "create_calendar_event"]
+    },
+    {
+      "id": "engineering_bot",
+      "name": "EngineeringBot",
+      "owner": "Ishan Kapoor, Engineering Productivity",
+      "description": "Reads source repositories and opens engineering work items for maintainers.",
+      "granted_tools": ["read_source_repository", "create_issue"],
+      "can_delegate_to": [],
+      "usage_log": ["read_source_repository", "create_issue"]
+    },
+    {
+      "id": "monitoring_bot",
+      "name": "MonitoringBot",
+      "owner": "Harper Davis, Site Reliability",
+      "description": "Reads service metrics and opens incident tickets when a threshold is breached.",
+      "granted_tools": ["read_system_metrics", "create_incident_ticket"],
+      "can_delegate_to": [],
+      "usage_log": ["read_system_metrics", "create_incident_ticket"]
+    },
+    {
+      "id": "onboarding_bot",
+      "name": "OnboardingBot",
+      "owner": "Jordan Ellis, People Operations",
+      "description": "Creates onboarding checklists and sends internal reminders to new hires.",
+      "granted_tools": ["create_onboarding_checklist", "send_internal_message"],
+      "can_delegate_to": [],
+      "usage_log": ["create_onboarding_checklist", "send_internal_message"]
+    },
+    {
+      "id": "research_bot",
+      "name": "ResearchBot",
+      "owner": "Lena Okafor, Strategy",
+      "description": "Searches public sources and summarizes non-confidential market research.",
+      "granted_tools": ["web_search", "summarize_document"],
+      "can_delegate_to": [],
+      "usage_log": ["web_search", "summarize_document"]
+    }
+  ]
+}
