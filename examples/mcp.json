@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "customer-records-reader": {
+      "command": "npx",
+      "args": ["-y", "@example/customer-records-mcp"]
+    },
+    "external-outreach-delivery": {
+      "command": "npx",
+      "args": ["-y", "@example/external-outreach-mcp"]
+    }
+  }
+}
