@@ -1,0 +1,412 @@
+{
+  "effective_access": {
+    "access_bot": [
+      "grant_access",
+      "request_access"
+    ],
+    "compliance_bot": [
+      "create_audit_ticket",
+      "read_policy_library"
+    ],
+    "contract_bot": [
+      "draft_contract",
+      "read_contract_repository"
+    ],
+    "data_quality_bot": [
+      "read_analytics",
+      "validate_data"
+    ],
+    "engineering_bot": [
+      "create_issue",
+      "read_source_repository"
+    ],
+    "finance_bot": [
+      "approve_payment"
+    ],
+    "inventory_bot": [
+      "read_inventory",
+      "update_inventory"
+    ],
+    "invoice_bot": [
+      "approve_payment",
+      "create_vendor"
+    ],
+    "knowledge_bot": [
+      "read_knowledge_base"
+    ],
+    "legacy_bot": [
+      "read_archive"
+    ],
+    "monitoring_bot": [
+      "create_incident_ticket",
+      "read_system_metrics"
+    ],
+    "onboarding_bot": [
+      "create_onboarding_checklist",
+      "send_internal_message"
+    ],
+    "payroll_bot": [
+      "add_employee",
+      "run_payroll"
+    ],
+    "report_bot": [
+      "delete_records",
+      "export_data",
+      "read_db"
+    ],
+    "research_bot": [
+      "summarize_document",
+      "web_search"
+    ],
+    "sales_assist_bot": [
+      "draft_customer_email",
+      "read_crm"
+    ],
+    "sales_bot": [
+      "read_crm",
+      "send_external_email"
+    ],
+    "scheduler_bot": [
+      "create_calendar_event",
+      "read_calendar"
+    ],
+    "summary_bot": [
+      "approve_payment",
+      "read_knowledge_base"
+    ],
+    "support_bot": [
+      "read_customer_pii",
+      "send_external_email"
+    ],
+    "travel_bot": [
+      "create_travel_request"
+    ]
+  },
+  "findings": [
+    {
+      "agent_id": "access_bot",
+      "business_risk": "AccessBot possesses both the request_access and grant_access tools, creating a self\u2011granting privilege path that bypasses segregation of duties. This enables the agent to request and immediately grant access to applications without independent review, exposing all systems reachable through the access request workflow to unauthorized privilege escalation and potential data breach or compliance violation.",
+      "check_type": "sod",
+      "control_mapping": "Identity governance \u2014 segregation of duties (access request versus access grant)",
+      "evidence": [
+        {
+          "detail": "holds this effective-access combination",
+          "entity_id": "access_bot",
+          "entity_type": "agent"
+        },
+        {
+          "detail": "AccessBot has a direct grant of grant_access.",
+          "entity_id": "grant_access",
+          "entity_type": "tool"
+        },
+        {
+          "detail": "AccessBot has a direct grant of request_access.",
+          "entity_id": "request_access",
+          "entity_type": "tool"
+        }
+      ],
+      "id": "sod:access_bot:it_request_access_grant_access",
+      "recommended_action": "Separate the request and grant functions by revoking AccessBot's direct grant of grant_access, enforce a human approval step for all access grants, and implement monitoring/audit controls to detect any unauthorized self\u2011granting activity.",
+      "rule_id": "it_request_access_grant_access",
+      "severity": "high",
+      "source": "deterministic",
+      "title": "Self-granting privilege path"
+    },
+    {
+      "agent_id": "invoice_bot",
+      "business_risk": "The InvoiceBot agent holds both the create_vendor and approve_payment grants, eliminating segregation of duties. If the agent is compromised or misused, it could create fraudulent vendor records and directly approve payments, exposing the organization to unauthorized disbursements, financial loss, and SOX ITGC non\u2011compliance.",
+      "check_type": "sod",
+      "control_mapping": "SOX ITGC \u2014 segregation of duties (vendor creation versus payment approval)",
+      "evidence": [
+        {
+          "detail": "holds this effective-access combination",
+          "entity_id": "invoice_bot",
+          "entity_type": "agent"
+        },
+        {
+          "detail": "InvoiceBot has a direct grant of approve_payment.",
+          "entity_id": "approve_payment",
+          "entity_type": "tool"
+        },
+        {
+          "detail": "InvoiceBot has a direct grant of create_vendor.",
+          "entity_id": "create_vendor",
+          "entity_type": "tool"
+        }
+      ],
+      "id": "sod:invoice_bot:finance_create_vendor_approve_payment",
+      "recommended_action": "Separate the vendor\u2011creation and payment\u2011approval privileges by revoking one of the direct grants from InvoiceBot, assign each function to distinct roles, and implement dual\u2011approval controls with audit logging to enforce segregation of duties.",
+      "rule_id": "finance_create_vendor_approve_payment",
+      "severity": "critical",
+      "source": "deterministic",
+      "title": "Critical fraud path: create vendor and approve payment"
+    },
+    {
+      "agent_id": "payroll_bot",
+      "business_risk": "PayrollBot holds both the add_employee and run_payroll permissions, enabling it to create employee records and immediately process payroll for those records. This creates a direct ghost\u2011employee fraud path that could result in unauthorized payouts, material financial loss, and violation of SOX ITGC segregation\u2011of\u2011duties requirements.",
+      "check_type": "sod",
+      "control_mapping": "SOX ITGC \u2014 segregation of duties (employee setup versus payroll execution)",
+      "evidence": [
+        {
+          "detail": "holds this effective-access combination",
+          "entity_id": "payroll_bot",
+          "entity_type": "agent"
+        },
+        {
+          "detail": "PayrollBot has a direct grant of add_employee.",
+          "entity_id": "add_employee",
+          "entity_type": "tool"
+        },
+        {
+          "detail": "PayrollBot has a direct grant of run_payroll.",
+          "entity_id": "run_payroll",
+          "entity_type": "tool"
+        }
+      ],
+      "id": "sod:payroll_bot:hr_add_employee_run_payroll",
+      "recommended_action": "Separate the conflicting duties by revoking one of the direct grants (e.g., remove add_employee from PayrollBot or require an independent approval step before payroll execution). Implement a least\u2011privilege model and continuous monitoring of add_employee and run_payroll activities.",
+      "rule_id": "hr_add_employee_run_payroll",
+      "severity": "critical",
+      "source": "deterministic",
+      "title": "Critical ghost-employee fraud path"
+    },
+    {
+      "agent_id": "support_bot",
+      "business_risk": "SupportBot possesses both read access to customer PII and the ability to send external email, creating a direct path for unauthorized disclosure of sensitive personal data to recipients outside the organization.",
+      "check_type": "sod",
+      "control_mapping": "Data protection \u2014 least privilege and controlled external egress",
+      "evidence": [
+        {
+          "detail": "holds this effective-access combination",
+          "entity_id": "support_bot",
+          "entity_type": "agent"
+        },
+        {
+          "detail": "SupportBot has a direct grant of read_customer_pii.",
+          "entity_id": "read_customer_pii",
+          "entity_type": "tool"
+        },
+        {
+          "detail": "SupportBot has a direct grant of send_external_email.",
+          "entity_id": "send_external_email",
+          "entity_type": "tool"
+        }
+      ],
+      "id": "sod:support_bot:sensitive_data_external_egress",
+      "recommended_action": "Revoke the direct grant of send_external_email from SupportBot, restrict read_customer_pii to only necessary internal processes, and implement monitoring and approval controls for any external egress of PII.",
+      "rule_id": "sensitive_data_external_egress",
+      "severity": "critical",
+      "source": "deterministic",
+      "title": "Critical data-exfiltration path"
+    },
+    {
+      "agent_id": "report_bot",
+      "business_risk": "If the ReportBot agent\u2019s credentials are compromised, its unused standing grants allow it to delete operational records or export analytics data. This could cause loss of critical reporting information, unauthorized data exposure, regulatory non\u2011compliance, and reputational harm.",
+      "check_type": "over_privilege",
+      "control_mapping": "Least privilege \u2014 access certification using granted versus used access",
+      "evidence": [
+        {
+          "detail": "usage log contains no invocation of these direct grants: delete_records, export_data",
+          "entity_id": "report_bot",
+          "entity_type": "agent"
+        },
+        {
+          "detail": "ReportBot has a direct grant of delete_records.",
+          "entity_id": "delete_records",
+          "entity_type": "tool"
+        },
+        {
+          "detail": "ReportBot has a direct grant of export_data.",
+          "entity_id": "export_data",
+          "entity_type": "tool"
+        }
+      ],
+      "id": "over_privilege:report_bot:unused_granted_tools",
+      "recommended_action": "Revoke the unused delete_records and export_data grants from ReportBot, align its permissions with the principle of least privilege, and institute regular access\u2011certification reviews to ensure granted rights match actual usage.",
+      "rule_id": "unused_granted_tools",
+      "severity": "high",
+      "source": "deterministic",
+      "title": "Unused standing access: 2 direct grants"
+    },
+    {
+      "agent_id": "summary_bot",
+      "business_risk": "This agent does not hold payment approval directly, but it can reach an agent that does through delegation. Its effective access therefore includes authority to authorize disbursements, creating a confused-deputy path.",
+      "check_type": "escalation",
+      "control_mapping": "Identity governance \u2014 effective access review and least privilege",
+      "evidence": [
+        {
+          "detail": "reaches approve_payment only through delegation to finance_bot",
+          "entity_id": "summary_bot",
+          "entity_type": "agent"
+        },
+        {
+          "detail": "summary_bot can delegate to finance_bot.",
+          "entity_id": "summary_bot->finance_bot",
+          "entity_type": "delegation_edge"
+        },
+        {
+          "detail": "finance_bot is the direct grant holder reached through summary_bot -> finance_bot.",
+          "entity_id": "finance_bot",
+          "entity_type": "agent"
+        },
+        {
+          "detail": "SummaryBot effectively reaches approve_payment through summary_bot -> finance_bot.",
+          "entity_id": "approve_payment",
+          "entity_type": "tool"
+        }
+      ],
+      "id": "escalation:summary_bot:delegated_high_risk_payment_approval",
+      "recommended_action": "Remove or constrain the delegation link to the payment-approving agent. If delegation is necessary, expose a narrowly scoped workflow action rather than the delegate's general approval authority.",
+      "rule_id": "delegated_high_risk_payment_approval",
+      "severity": "critical",
+      "source": "deterministic",
+      "title": "Delegated payment-approval blast radius"
+    },
+    {
+      "agent_id": "legacy_bot",
+      "business_risk": "The LegacyBot agent operates without an assigned owner, meaning no accountable reviewer can certify its access or monitor its activity. This creates a governance gap where the agent could be used to retrieve or disclose information from the retired product archive without oversight, increasing the risk of unauthorized data exposure, non\u2011compliance with accountability controls, and potential reputational or regulatory impact.",
+      "check_type": "orphan",
+      "control_mapping": "Accountability \u2014 named owner required for agent access certification",
+      "evidence": [
+        {
+          "detail": "owner is null in the fleet inventory",
+          "entity_id": "legacy_bot",
+          "entity_type": "agent"
+        }
+      ],
+      "id": "orphan:legacy_bot:missing_owner",
+      "recommended_action": "Immediately assign a qualified owner to LegacyBot and complete the required access certification. Update the fleet inventory to reflect the owner, enforce the \"named owner\" control for all agents, and schedule periodic reviews to ensure continued accountability.",
+      "rule_id": "missing_owner",
+      "severity": "high",
+      "source": "deterministic",
+      "title": "Ownerless agent has no accountable reviewer"
+    },
+    {
+      "agent_id": "sales_bot",
+      "business_risk": "The SalesBot agent possesses both read access to CRM account context and the ability to send email outside the company. This combination enables the automated extraction of customer information and its transmission to external recipients, creating a direct pathway for data leakage, privacy violations, and potential reputational damage.",
+      "check_type": "sod",
+      "control_mapping": "Identity governance \u2014 GPT-identified segregation-of-duties candidate",
+      "evidence": [
+        {
+          "detail": "holds the cited effective-access combination.",
+          "entity_id": "sales_bot",
+          "entity_type": "agent"
+        },
+        {
+          "detail": "SalesBot has a direct grant of read_crm.",
+          "entity_id": "read_crm",
+          "entity_type": "tool"
+        },
+        {
+          "detail": "SalesBot has a direct grant of send_external_email.",
+          "entity_id": "send_external_email",
+          "entity_type": "tool"
+        }
+      ],
+      "id": "sod:sales_bot:llm_toxic_read_crm_send_external_email",
+      "recommended_action": "Separate the read and email-sending capabilities by revoking one of the direct grants, enforce a segregation\u2011of\u2011duties policy, and implement monitoring to detect any unauthorized external communications originating from agents with CRM read privileges.",
+      "rule_id": "llm_toxic_read_crm_send_external_email",
+      "severity": "high",
+      "source": "llm_generalized",
+      "title": "AI-generalized toxic capability combination: Read CRM account context + Send email outside the company"
+    }
+  ],
+  "generated_at": "2026-07-18T09:37:20.185131+00:00",
+  "granted_vs_needed_gaps": {},
+  "metadata": {
+    "analysis_version": "0.1",
+    "citation_verification": {
+      "evidence_entities": 23,
+      "findings": 8,
+      "status": "passed"
+    },
+    "llm_enrichment": {
+      "completion": {
+        "agents_incomplete": [],
+        "classified_tools": 32,
+        "total_tools": 34,
+        "unclassified_tool_ids": [
+          "create_onboarding_checklist",
+          "read_contract_repository"
+        ]
+      },
+      "disclosure": "This zero-key cache was produced from a real OpenAI gpt-oss-120b Amazon Bedrock analysis of the committed synthetic fleet. Dashboard replay never calls Bedrock.",
+      "enabled": true,
+      "mode": "cached live OpenAI gpt-oss-120b Bedrock result",
+      "operations": {
+        "finding_narratives": {
+          "accepted_grounded_narratives": 7,
+          "findings": 8,
+          "status": "ok"
+        },
+        "needed_access": {
+          "detail": "RuntimeError",
+          "status": "unavailable"
+        },
+        "tool_classification": {
+          "classified_tools": 32,
+          "failed_batch_tool_ids": [],
+          "individual_retry_tool_ids": [
+            "create_onboarding_checklist",
+            "read_contract_repository"
+          ],
+          "status": "partial",
+          "total_tools": 34,
+          "unclassified_tool_ids": [
+            "create_onboarding_checklist",
+            "read_contract_repository"
+          ]
+        },
+        "toxic_combination_reasoning": {
+          "agents_analyzed": 17,
+          "agents_incomplete": [],
+          "agents_total": 17,
+          "new_cited_findings": 1,
+          "on_demand_tool_retry_ids": [],
+          "status": "ok"
+        }
+      },
+      "status": "partial"
+    },
+    "mode": "zero_key_cached_demo",
+    "redaction": "No secrets, environment values, or agent payload data are present in this cache. Model prose and cache text were redacted before serialization."
+  },
+  "needed_capabilities": {},
+  "schema_version": "0.1",
+  "tool_capabilities": {
+    "add_employee": "creates employee records in the HR system",
+    "approve_payment": "authorizes queued payments for release",
+    "create_audit_ticket": "opens audit follow\u2011up tickets for reviewers",
+    "create_calendar_event": "creates internal meeting events on selected calendars",
+    "create_incident_ticket": "opens incident tickets for the on\u2011call team",
+    "create_issue": "opens engineering work items for maintainers",
+    "create_onboarding_checklist": "Unclassified capability for Create onboarding checklist",
+    "create_travel_request": "creates travel request for manager review",
+    "create_vendor": "adds supplier or payee to vendor master records",
+    "delete_records": "deletes selected analytics database records",
+    "draft_contract": "drafts contract language for legal review",
+    "draft_customer_email": "creates customer email draft for sales representative review",
+    "export_data": "exports analytics data to a file",
+    "grant_access": "assigns application role to employee",
+    "read_analytics": "retrieves approved analytics extract for review",
+    "read_archive": "retrieves documents from retired product archive",
+    "read_calendar": "retrieves availability from internal team calendars",
+    "read_contract_repository": "Unclassified capability for Read contract repository",
+    "read_crm": "reads sales account notes and opportunity context from the CRM system",
+    "read_customer_pii": "reads customer contact and account information for support cases",
+    "read_db": "executes read\u2011only queries on the analytics database",
+    "read_inventory": "reads current warehouse inventory and stock counts",
+    "read_knowledge_base": "searches and reads approved internal knowledge articles",
+    "read_policy_library": "reads published company policy documents",
+    "read_source_repository": "reads source code files and issue data from engineering repository",
+    "read_system_metrics": "reads service health and performance metrics from monitoring system",
+    "request_access": "submits employee access request to application provisioning system",
+    "run_payroll": "initiates payroll calculation and payment processing for employees",
+    "send_external_email": "sends email messages to external recipients",
+    "send_internal_message": "sends reminder messages via internal messaging platform",
+    "summarize_document": "generates concise summary of a document",
+    "update_inventory": "updates warehouse inventory stock count records",
+    "validate_data": "validates analytics extract data against quality rules",
+    "web_search": "searches publicly available web pages for information"
+  }
+}

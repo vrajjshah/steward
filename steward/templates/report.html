@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+
+{% block title %}Fleet audit report — Steward{% endblock %}
+
+{% block content %}
+{% if error %}
+<section class="empty-state" role="alert">
+  <div class="empty-icon">!</div>
+  <div><h1>Report unavailable</h1><p>{{ error }}</p></div>
+</section>
+{% else %}
+<section class="report-header">
+  <a class="back-link" href="/">← Dashboard</a>
+  <div class="report-title-row">
+    <div>
+      <div class="eyebrow">Agentic identity governance</div>
+      <h1>Fleet audit report</h1>
+      <p>Effective access, segregation of duties, least privilege, and accountable ownership—backed by graph entities, not guesses.</p>
+    </div>
+    <div class="report-actions no-print">
+      <a class="button button-quiet" href="/api/report.json">JSON</a>
+      <a class="button button-quiet" href="/api/report.md">Markdown</a>
+      <a class="button button-primary" href="/api/certification-packet.json">Certification packet</a>
+    </div>
+  </div>
+  <div class="report-meta">Generated {{ report.generated_at }} · Steward schema {{ report.schema_version }}</div>
+</section>
+
+<section class="report-summary-grid">
+  <div class="report-summary-card"><span>Fleet scope</span><strong>{{ report.scope.agents }} agents</strong><small>{{ report.scope.tools }} tools · {{ report.scope.delegation_edges }} delegation edges</small></div>
+  <div class="report-summary-card summary-critical"><span>Verified findings</span><strong>{{ report.executive_summary.findings }}</strong><small>{{ report.executive_summary.critical_agents }} critical-risk agents</small></div>
+  <div class="report-summary-card"><span>Certification queue</span><strong>{{ report.executive_summary.review_status }} pending</strong><small>Review each agent risk card</small></div>
+</section>
+
+{% if report.mcp_threat_context %}
+<section class="report-section" aria-labelledby="mcp-context-title">
+  <div class="section-heading compact-heading">
+    <div><div class="eyebrow">Documented MCP threat context</div><h2 id="mcp-context-title">Authentication and token protection</h2></div>
+  </div>
+  {% for context in report.mcp_threat_context %}
+  <div class="threat-context-note">
+    <strong>{{ context.title }}</strong>
+    <p>This is context only, not a Steward finding or evidence that the loaded fleet has a token issue.</p>
+    <p><a href="{{ context.owasp_mcp.url }}" target="_blank" rel="noopener noreferrer">{{ context.owasp_mcp.id }} · {{ context.owasp_mcp.title }}</a></p>
+    <p><a href="{{ context.incident.url }}" target="_blank" rel="noopener noreferrer">{{ context.incident.title }}</a> · {{ context.incident.date }}</p>
+    <p class="enrichment-detail">{{ context.incident.relevance }}</p>
+  </div>
+  {% endfor %}
+</section>
+{% endif %}
+
+<section class="report-section" aria-labelledby="enrichment-title">
+  <div class="section-heading compact-heading">
+    <div>
+      <div class="eyebrow">Model provenance</div>
+      <h2 id="enrichment-title">Optional model enrichment</h2>
+    </div>
+  </div>
+  <div class="report-enrichment {{ report.llm_enrichment.css_class }}">
+    <div class="report-enrichment-summary">
+      <div class="enrichment-status-heading">
+        <strong>{{ report.llm_enrichment.label }}</strong>
+        {% if report.llm_enrichment.mode %}<span class="enrichment-mode">{{ report.llm_enrichment.mode }}</span>{% endif %}
+      </div>
+      <p>{{ report.llm_enrichment.description }}</p>
+      {% if report.llm_enrichment.completion.coverage %}<p class="enrichment-completion"><strong>Completion:</strong> {{ report.llm_enrichment.completion.coverage | join(' · ') }}</p>{% endif %}
+      {% if report.llm_enrichment.reason %}<p class="enrichment-detail"><strong>Note:</strong> {{ report.llm_enrichment.reason }}</p>{% endif %}
+      {% if report.llm_enrichment.disclosure %}<p class="enrichment-detail"><strong>Disclosure:</strong> {{ report.llm_enrichment.disclosure }}</p>{% endif %}
+    </div>
+    {% if report.llm_enrichment.operations %}
+    <div class="enrichment-operation-list" aria-label="Enrichment operation coverage">
+      {% for operation in report.llm_enrichment.operations %}
+      <div class="enrichment-operation{% if operation.incomplete %} is-incomplete{% endif %}">
+        <span>{{ operation.label }}</span>
+        <strong>{{ operation.status_label }}</strong>
+        {% if operation.coverage %}<small>{{ operation.coverage | join(' · ') }}</small>{% endif %}
+        {% if operation.incomplete_agents %}<small>Incomplete: {{ operation.incomplete_agents | join(', ') }}</small>{% endif %}
+        {% if operation.incomplete_tools %}<small>Unclassified: {{ operation.incomplete_tools | join(', ') }}</small>{% endif %}
+        {% if operation.failed_batch_tools %}<small>Recovered batch retry: {{ operation.failed_batch_tools | join(', ') }}</small>{% endif %}
+        {% if operation.individual_retry_tools %}<small>Individual retry: {{ operation.individual_retry_tools | join(', ') }}</small>{% endif %}
+        {% if operation.on_demand_retry_tools %}<small>On-demand retry: {{ operation.on_demand_retry_tools | join(', ') }}</small>{% endif %}
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+<section class="report-section">
+  <div class="section-heading compact-heading">
+    <div><div class="eyebrow">Scope and data discipline</div><h2>What was analyzed</h2></div>
+  </div>
+  <p class="report-prose">{{ report.scope.what_was_analyzed }}</p>
+</section>
+
+<section class="report-section" aria-labelledby="controls-title">
+  <div class="section-heading compact-heading"><div><div class="eyebrow">Control language</div><h2 id="controls-title">Finding-to-control mapping</h2></div></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Signal</th><th>Control mapping</th><th>Findings</th><th>Highest risk</th></tr></thead>
+      <tbody>
+      {% for control in report.control_mapping %}
+        <tr><td>{{ control.label }}</td><td>{{ control.control_mapping }}</td><td>{{ control.findings }}</td><td><span class="risk-pill risk-{{ control.highest_severity }}">{{ control.highest_severity }}</span></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="report-section" aria-labelledby="audit-findings-title">
+  <div class="section-heading compact-heading"><div><div class="eyebrow">Verified findings</div><h2 id="audit-findings-title">Evidence trail and remediation</h2></div></div>
+  <div class="report-findings">
+  {% for finding in report.findings %}
+    <article class="finding-card severity-{{ finding.severity }}">
+      <div class="finding-topline">
+        <span class="severity-badge">{{ finding.severity }}</span>
+        <span class="check-badge">{{ finding.check_label }}</span>
+        <span class="source-badge {{ finding.source_css_class }}" title="{{ finding.source_description }}">{{ finding.source_label }}</span>
+        <a class="agent-link" href="/risk-cards/{{ finding.agent_id }}">{{ finding.agent_id }} ↗</a>
+      </div>
+      <h3>{{ finding.title }}</h3>
+      <p>{{ finding.business_risk }}</p>
+      <div class="finding-action"><strong>Recommended action</strong><span>{{ finding.recommended_action }}</span></div>
+      <div class="evidence-trail"><span class="evidence-title">Evidence</span>{% for evidence in finding.evidence %}<span class="evidence-chip"><small>{{ evidence.entity_type | replace('_', ' ') }}</small><code>{{ evidence.entity_id }}</code></span>{% endfor %}</div>
+      {% include "_finding_context.html" %}
+      <div class="control-map">{{ finding.control_mapping }}</div>
+    </article>
+  {% else %}
+    <div class="clear-panel"><span>✓</span><div><h3>No verified findings</h3><p>Steward suppressed anything without valid citations.</p></div></div>
+  {% endfor %}
+  </div>
+</section>
+
+<section class="report-section" aria-labelledby="packet-title">
+  <div class="section-heading compact-heading"><div><div class="eyebrow">Access certification</div><h2 id="packet-title">Reviewer queue</h2></div><a class="text-link no-print" href="/api/certification-packet.json">Export JSON →</a></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Agent</th><th>Owner</th><th>Risk tier</th><th>Findings</th><th>Review</th></tr></thead>
+      <tbody>
+      {% for card in report.certification_packet.risk_cards %}
+        <tr>
+          <td><a class="table-link" href="/risk-cards/{{ card.agent.id }}">{{ card.agent.name }}</a><small>{{ card.agent.id }}</small></td>
+          <td>{{ card.agent.owner or "Unassigned" }}</td>
+          <td><span class="risk-pill risk-{{ card.risk_tier }}">{{ card.risk_tier }}</span></td>
+          <td>{{ card.findings | length }}</td>
+          <td><span class="review-state review-{{ card.review.status }}">{{ card.review.status }}</span></td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+{% endblock %}

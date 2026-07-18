@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}{{ card.agent.name }} — Steward risk card{% endblock %}
+
+{% block content %}
+<section class="page-header risk-header risk-{{ card.risk_tier }}">
+  <a class="back-link" href="/#findings">← Back to findings</a>
+  <div class="risk-header-grid">
+    <div>
+      <div class="eyebrow">Agent access certification</div>
+      <h1>{{ card.agent.name }}</h1>
+      <p>{{ card.agent.description }}</p>
+    </div>
+    <div class="risk-score">
+      <span>Risk tier</span>
+      <strong>{{ card.risk_tier }}</strong>
+      <small>{{ card.findings | length }} verified finding{% if card.findings | length != 1 %}s{% endif %}</small>
+    </div>
+  </div>
+</section>
+
+<section class="card-layout">
+  <div class="card-main">
+    <article class="detail-panel identity-panel">
+      <div class="detail-panel-header"><span>Identity</span><code>{{ card.agent.id }}</code></div>
+      <dl class="identity-grid">
+        <div><dt>Owner</dt><dd>{{ card.agent.owner or "Unassigned — investigate" }}</dd></div>
+        <div><dt>Review state</dt><dd><span class="review-state review-{{ card.review.status }}">{{ card.review.status }}</span></dd></div>
+      </dl>
+    </article>
+
+    <article class="detail-panel">
+      <div class="detail-panel-header"><span>Effective access</span><small>Direct + delegated</small></div>
+      {% if card.agent.effective_access %}
+      <ul class="access-list">
+        {% for tool in card.agent.effective_access %}
+          <li class="{% if tool not in card.agent.granted_tools %}delegated-tool{% endif %}">
+            <code>{{ tool }}</code>
+            {% if tool not in card.agent.granted_tools %}<span>via delegation</span>{% else %}<span>direct grant</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+        <p class="muted">No effective access was recorded.</p>
+      {% endif %}
+    </article>
+
+    <article class="detail-panel needed-panel">
+      <div class="detail-panel-header"><span>Granted vs. Needed</span><small>LLM-assisted signal</small></div>
+      <div class="needed-grid">
+        <div>
+          <h3>Declared need</h3>
+          {% if card.needed_capabilities %}
+            <ul>{% for capability in card.needed_capabilities %}<li>{{ capability }}</li>{% endfor %}</ul>
+          {% else %}
+            <p class="muted">No inferred need was available for this analysis run.</p>
+          {% endif %}
+        </div>
+        <div>
+          <h3>Concrete grant gap</h3>
+          {% if card.granted_vs_needed_gap %}
+            <ul>{% for tool in card.granted_vs_needed_gap %}<li><code>{{ tool }}</code></li>{% endfor %}</ul>
+          {% else %}
+            <p class="muted">No tool-ID-level gap was asserted. Treat capability inferences as review context, not a fact.</p>
+          {% endif %}
+        </div>
+      </div>
+    </article>
+
+    <section class="card-findings" aria-labelledby="card-findings-title">
+      <div class="section-heading compact-heading">
+        <div>
+          <div class="eyebrow">Cited findings</div>
+          <h2 id="card-findings-title">Why this card needs attention</h2>
+        </div>
+      </div>
+      {% if card.findings %}
+        {% for finding in card.findings %}
+        <article class="finding-card severity-{{ finding.severity }}">
+          <div class="finding-topline">
+            <span class="severity-badge">{{ finding.severity }}</span>
+            <span class="check-badge">{{ finding.check_label }}</span>
+            <span class="source-badge {{ finding.source_css_class }}" title="{{ finding.source_description }}">{{ finding.source_label }}</span>
+          </div>
+          <h3>{{ finding.title }}</h3>
+          <p>{{ finding.business_risk }}</p>
+          <div class="finding-action"><strong>Recommended action</strong><span>{{ finding.recommended_action }}</span></div>
+          <div class="evidence-trail">
+            <span class="evidence-title">Evidence</span>
+            {% for evidence in finding.evidence %}
+              <span class="evidence-chip"><small>{{ evidence.entity_type | replace('_', ' ') }}</small><code>{{ evidence.entity_id }}</code></span>
+            {% endfor %}
+          </div>
+          {% include "_finding_context.html" %}
+          <div class="control-map">{{ finding.control_mapping }}</div>
+        </article>
+        {% endfor %}
+      {% else %}
+        <div class="clear-panel"><span>✓</span><div><h3>No verified findings</h3><p>This is not a guarantee of safety; it means no configured v0.1 rule fired with valid evidence.</p></div></div>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="review-panel">
+    <div class="eyebrow">Reviewer action</div>
+    <h2>Certify this access</h2>
+    <p>Record the decision for this local review session. Export the certification packet when the queue is complete.</p>
+    <form data-review-form data-agent-id="{{ card.agent.id }}">
+      <label for="review-status"><span>Decision</span>
+        <select id="review-status" name="status">
+          <option value="pending" {% if card.review.status == 'pending' %}selected{% endif %}>Keep pending</option>
+          <option value="approve" {% if card.review.status == 'approve' %}selected{% endif %}>Approve access</option>
+          <option value="revoke" {% if card.review.status == 'revoke' %}selected{% endif %}>Revoke / reduce access</option>
+          <option value="flag" {% if card.review.status == 'flag' %}selected{% endif %}>Flag for investigation</option>
+        </select>
+      </label>
+      <label for="review-note"><span>Review note</span><textarea id="review-note" name="note" rows="5" placeholder="Why is this decision appropriate?">{{ card.review.note }}</textarea></label>
+      <button class="button button-primary" type="submit">Save review decision</button>
+      <p class="form-status" data-form-status aria-live="polite"></p>
+    </form>
+    <div class="review-actions">
+      <a class="button button-quiet" href="/api/certification-packet.json">Export packet</a>
+      <a class="text-link" href="/report">View fleet report →</a>
+    </div>
+  </aside>
+</section>
+{% endblock %}

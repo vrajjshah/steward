@@ -1,0 +1,15 @@
+{% if finding.owasp_mcp or finding.real_world_incident %}
+<div class="finding-context" aria-label="Grounded MCP threat context">
+  <span class="finding-context-title">Grounded MCP context <small>not graph evidence</small></span>
+  {% for reference in finding.owasp_mcp %}
+  <a class="context-link context-owasp" href="{{ reference.url }}" target="_blank" rel="noopener noreferrer" title="{{ reference.relevance }}">
+    {{ reference.id }} · {{ reference.title }}
+  </a>
+  {% endfor %}
+  {% for incident in finding.real_world_incident %}
+  <a class="context-link" href="{{ incident.url }}" target="_blank" rel="noopener noreferrer" title="{{ incident.relevance }}">
+    {{ incident.title }} <small>{{ incident.date }}</small>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}

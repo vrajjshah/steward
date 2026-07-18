@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Steward — see your agents' blast radius{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div class="eyebrow"><span class="live-dot"></span> Effective-access analysis</div>
+  <div class="hero-grid">
+    <div>
+      <h1>See what your agents can <em>actually</em> do.</h1>
+      <p class="hero-copy">Steward maps tool grants and delegation paths into cited risks—the dangerous combinations hiding in plain sight.</p>
+      <div class="hero-actions">
+        <button class="button button-primary" type="button" data-run-analysis>Run access analysis</button>
+        <a class="button button-quiet" href="/report">Open audit report <span aria-hidden="true">→</span></a>
+      </div>
+    </div>
+    <aside class="analysis-panel" aria-label="Analysis scope">
+      <div class="panel-label">What Steward inspects</div>
+      <div class="scope-line"><span>01</span> Agent identities &amp; owners</div>
+      <div class="scope-line"><span>02</span> Tool grants &amp; actual use</div>
+      <div class="scope-line"><span>03</span> Delegated effective access</div>
+      <p>Config metadata only. No PII, secrets, or agent payloads are sent for analysis.</p>
+    </aside>
+  </div>
+</section>
+
+{% if not ready %}
+<section class="empty-state" role="alert">
+  <div class="empty-icon">!</div>
+  <div>
+    <h2>Analysis is not ready yet</h2>
+    <p>{{ error }}</p>
+    <p class="muted">For the zero-key demo, start with <code>STEWARD_DEMO=1</code>. You can also load a local fleet config below.</p>
+  </div>
+</section>
+{% else %}
+<section class="stat-row" aria-label="Fleet risk summary">
+  <div class="stat-card stat-critical">
+    <span class="stat-label">Critical paths</span>
+    <strong>{{ severity_counts.critical }}</strong>
+    <span>act first</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Verified findings</span>
+    <strong>{{ report.executive_summary.findings }}</strong>
+    <span>all cited</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Agents in scope</span>
+    <strong>{{ report.scope.agents }}</strong>
+    <span>{{ report.scope.delegation_edges }} delegation edge{% if report.scope.delegation_edges != 1 %}s{% endif %}</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-label">Review queue</span>
+    <strong>{{ report.executive_summary.review_status }}</strong>
+    <span>owner decisions pending</span>
+  </div>
+</section>
+
+<section class="enrichment-status {{ report.llm_enrichment.css_class }}" aria-label="Optional model enrichment status">
+  <div class="enrichment-status-copy">
+    <div class="eyebrow">Optional model enrichment</div>
+    <div class="enrichment-status-heading">
+      <strong>{{ report.llm_enrichment.label }}</strong>
+      {% if report.llm_enrichment.mode %}<span class="enrichment-mode">{{ report.llm_enrichment.mode }}</span>{% endif %}
+    </div>
+    <p>{{ report.llm_enrichment.description }}</p>
+    {% if report.llm_enrichment.completion.coverage %}<p class="enrichment-completion">Completion: {{ report.llm_enrichment.completion.coverage | join(' · ') }}</p>{% endif %}
+    {% if report.llm_enrichment.disclosure %}<p class="enrichment-disclosure">{{ report.llm_enrichment.disclosure }}</p>{% endif %}
+  </div>
+  {% if report.llm_enrichment.operations %}
+  <div class="enrichment-operation-list" aria-label="Enrichment operation coverage">
+    {% for operation in report.llm_enrichment.operations %}
+    <div class="enrichment-operation{% if operation.incomplete %} is-incomplete{% endif %}">
+      <span>{{ operation.label }}</span>
+      <strong>{{ operation.status_label }}</strong>
+      {% if operation.coverage %}<small>{{ operation.coverage | join(' · ') }}</small>{% endif %}
+      {% if operation.incomplete_agents %}<small>Incomplete: {{ operation.incomplete_agents | join(', ') }}</small>{% endif %}
+      {% if operation.incomplete_tools %}<small>Unclassified: {{ operation.incomplete_tools | join(', ') }}</small>{% endif %}
+      {% if operation.failed_batch_tools %}<small>Recovered batch retry: {{ operation.failed_batch_tools | join(', ') }}</small>{% endif %}
+      {% if operation.individual_retry_tools %}<small>Individual retry: {{ operation.individual_retry_tools | join(', ') }}</small>{% endif %}
+      {% if operation.on_demand_retry_tools %}<small>On-demand retry: {{ operation.on_demand_retry_tools | join(', ') }}</small>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</section>
+
+{% if hero_finding %}
+<section class="hero-finding severity-{{ hero_finding.severity }}" aria-labelledby="hero-finding-title">
+  <div class="hero-finding-kicker">
+    <span class="severity-dot"></span> Start here · {{ hero_finding.severity }} blast radius
+    <span class="source-badge {{ hero_finding.source_css_class }}" title="{{ hero_finding.source_description }}">{{ hero_finding.source_label }}</span>
+  </div>
+  <div class="hero-finding-body">
+    <div>
+      <h2 id="hero-finding-title">{{ hero_finding.title }}</h2>
+      <p>{{ hero_finding.business_risk }}</p>
+    </div>
+    <a href="/risk-cards/{{ hero_finding.agent_id }}" class="button button-inverted">Review {{ hero_finding.agent_id }} <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="evidence-trail evidence-trail-hero">
+    <span class="evidence-title">Cited trail</span>
+    {% for evidence in hero_finding.evidence %}
+      <span class="evidence-chip"><small>{{ evidence.entity_type | replace('_', ' ') }}</small><code>{{ evidence.entity_id }}</code></span>
+    {% endfor %}
+  </div>
+  {% with finding = hero_finding %}{% include "_finding_context.html" %}{% endwith %}
+</section>
+{% endif %}
+
+{% if second_beat_finding %}
+<section class="second-beat severity-{{ second_beat_finding.severity }}" aria-labelledby="second-beat-title">
+  <div class="second-beat-intro">
+    <div>
+      <div class="second-beat-kicker">Then: AI-generalized path</div>
+      <h2 id="second-beat-title">{{ second_beat_finding.title }}</h2>
+    </div>
+    <span class="source-badge {{ second_beat_finding.source_css_class }}" title="{{ second_beat_finding.source_description }}">{{ second_beat_finding.source_label }}</span>
+  </div>
+  <div class="second-beat-body">
+    <p>{{ second_beat_finding.business_risk }}</p>
+    <a href="/risk-cards/{{ second_beat_finding.agent_id }}" class="text-link">Review {{ second_beat_finding.agent_id }} <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="evidence-trail second-beat-evidence">
+    <span class="evidence-title">Cited trail</span>
+    {% for evidence in second_beat_finding.evidence %}
+      <span class="evidence-chip"><small>{{ evidence.entity_type | replace('_', ' ') }}</small><code>{{ evidence.entity_id }}</code></span>
+    {% endfor %}
+  </div>
+  {% with finding = second_beat_finding %}{% include "_finding_context.html" %}{% endwith %}
+</section>
+{% endif %}
+
+<section class="section config-section" aria-labelledby="load-title">
+  <div class="section-heading compact-heading">
+    <div>
+      <div class="eyebrow">Bring your own fleet</div>
+      <h2 id="load-title">Run the same analysis on a local config</h2>
+    </div>
+    <p>Point Steward at a fleet JSON or Claude Desktop / Cursor MCP config. Secrets stay redacted.</p>
+  </div>
+  <form class="config-form" data-load-fleet>
+    <label>
+      <span>Config path</span>
+      <input name="fleet_path" type="text" placeholder="/path/to/fleet.json or mcp.json" autocomplete="off">
+    </label>
+    <label>
+      <span>Input format</span>
+      <select name="source_type">
+        <option value="fleet">Steward fleet JSON</option>
+        <option value="mcp">MCP config (mcp.json)</option>
+      </select>
+    </label>
+    <label class="tool-path">
+      <span>Tool catalog <small>(fleet JSON only)</small></span>
+      <input name="tools_path" type="text" placeholder="/path/to/tools.json" autocomplete="off">
+    </label>
+    <button class="button button-primary" type="submit">Load fleet</button>
+  </form>
+  <p class="form-status" data-form-status aria-live="polite"></p>
+</section>
+
+<section class="section" id="findings" aria-labelledby="findings-title">
+  <div class="section-heading">
+    <div>
+      <div class="eyebrow">Verified risk signals</div>
+      <h2 id="findings-title">Every finding has a trail.</h2>
+    </div>
+    <div class="filter-group" aria-label="Filter findings">
+      <button class="filter active" type="button" data-finding-filter="all">All <span>{{ findings | length }}</span></button>
+      <button class="filter" type="button" data-finding-filter="sod">SoD</button>
+      <button class="filter" type="button" data-finding-filter="over_privilege">Least privilege</button>
+      <button class="filter" type="button" data-finding-filter="escalation">Delegation</button>
+      <button class="filter" type="button" data-finding-filter="orphan">Ownership</button>
+    </div>
+  </div>
+  <div class="finding-list">
+    {% for finding in findings %}
+    <article class="finding-card severity-{{ finding.severity }}" data-finding-card data-check-type="{{ finding.check_type }}">
+      <div class="finding-topline">
+        <span class="severity-badge">{{ finding.severity }}</span>
+        <span class="check-badge">{{ finding.check_label }}</span>
+        <span class="source-badge {{ finding.source_css_class }}" title="{{ finding.source_description }}">{{ finding.source_label }}</span>
+        <a class="agent-link" href="/risk-cards/{{ finding.agent_id }}">{{ finding.agent_id }} <span aria-hidden="true">↗</span></a>
+      </div>
+      <h3>{{ finding.title }}</h3>
+      <p>{{ finding.business_risk }}</p>
+      <div class="finding-action"><strong>Recommended action</strong><span>{{ finding.recommended_action }}</span></div>
+      <div class="evidence-trail">
+        <span class="evidence-title">Evidence</span>
+        {% for evidence in finding.evidence %}
+          <span class="evidence-chip"><small>{{ evidence.entity_type | replace('_', ' ') }}</small><code>{{ evidence.entity_id }}</code></span>
+        {% endfor %}
+      </div>
+      {% include "_finding_context.html" %}
+      <div class="control-map">{{ finding.control_mapping }}</div>
+    </article>
+    {% endfor %}
+  </div>
+  <p class="no-filter-results" hidden data-no-filter-results>No findings match that signal.</p>
+</section>
+
+<section class="section map-section" id="fleet-map" aria-labelledby="map-title">
+  <div class="section-heading">
+    <div>
+      <div class="eyebrow">The access graph</div>
+      <h2 id="map-title">Delegation expands the blast radius.</h2>
+    </div>
+    <p>Direct grants are only the start. A line means one agent can act through another.</p>
+  </div>
+  <div class="graph-shell">
+    <canvas id="delegation-graph" aria-label="Delegation graph showing agents and their delegation relationships"></canvas>
+    <div class="graph-legend">
+      <span><i class="legend-dot critical"></i> critical</span>
+      <span><i class="legend-dot high"></i> high</span>
+      <span><i class="legend-dot clear"></i> clear</span>
+      <span><i class="legend-line"></i> can delegate</span>
+    </div>
+  </div>
+</section>
+
+<section class="section certification-section" aria-labelledby="certification-title">
+  <div class="section-heading">
+    <div>
+      <div class="eyebrow">Agentic identity governance</div>
+      <h2 id="certification-title">Certification queue</h2>
+    </div>
+    <a href="/report" class="text-link">Exportable audit report <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="risk-card-grid">
+    {% for card in risk_cards %}
+    <a class="mini-risk-card risk-{{ card.risk_tier }}" href="/risk-cards/{{ card.agent.id }}">
+      <div class="mini-card-top"><span class="risk-pill">{{ card.risk_tier }}</span><span>{{ card.findings | length }} finding{% if card.findings | length != 1 %}s{% endif %}</span></div>
+      <h3>{{ card.agent.name }}</h3>
+      <p>{{ card.agent.owner or "No owner assigned" }}</p>
+      <span class="review-state">Review: {{ card.review.status }}</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+
+<script id="graph-agents" type="application/json">{{ graph_agents | tojson }}</script>
+<script id="graph-edges" type="application/json">{{ graph_edges | tojson }}</script>
+{% endif %}
+{% endblock %}
