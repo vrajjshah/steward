@@ -1,8 +1,21 @@
-"""The single, redaction-first gateway to Amazon Bedrock.
+"""The single, redaction-first gateway to Steward's optional model backends.
 
 Steward never sends agent payload data to a model.  This module accepts only
 configuration metadata and defensively redacts it again at the boundary before
 serializing a request.  Deterministic checks never depend on this module.
+
+Two interchangeable backends implement the same two-method contract
+(``model_id(tier)`` + ``call_json(...)``), selected by ``LLM_BACKEND``:
+
+* ``bedrock`` (default) — Amazon Bedrock via the Converse API (boto3).
+* ``openai-compatible`` (aliases ``openai``, ``ollama``, ``local``) — any
+  ``/v1/chat/completions`` endpoint: a local Ollama, vLLM, LM Studio, or a
+  hosted OpenAI-compatible API. With a local endpoint, nothing ever leaves
+  the machine — the recommended posture for security teams.
+
+Steward's trust properties are deliberately model- and backend-independent:
+the deterministic floor never calls this module, and every model proposal from
+any backend passes the same graph-citation verifier before it can surface.
 """
 
 from __future__ import annotations
@@ -12,6 +25,7 @@ import logging
 import os
 import re
 import time
+import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -23,10 +37,36 @@ LOGGER = logging.getLogger(__name__)
 DEFAULT_SOL = "replace-with-bedrock-model-id-sol"
 DEFAULT_TERRA = "replace-with-bedrock-model-id-terra"
 DEFAULT_LUNA = "replace-with-bedrock-model-id-luna"
+DEFAULT_OPENAI_COMPATIBLE_BASE_URL = "http://localhost:11434/v1"
+
+_TIER_DEFAULTS = {"sol": DEFAULT_SOL, "terra": DEFAULT_TERRA, "luna": DEFAULT_LUNA}
 
 
 class LLMUnavailableError(RuntimeError):
     """Raised when live enrichment was requested without a configured model."""
+
+
+def resolve_model_id(tier: Literal["sol", "terra", "luna"]) -> str:
+    """Read the configured model id for a logical tier from ``MODEL_<TIER>``.
+
+    Shared by every backend: the same environment contract selects a Bedrock
+    model id, an Ollama tag, or a hosted model name depending on the backend.
+    """
+
+    value = os.getenv(f"MODEL_{tier.upper()}", _TIER_DEFAULTS[tier]).strip()
+    if not value or value == _TIER_DEFAULTS[tier] or value.startswith("replace-with-"):
+        raise LLMUnavailableError(
+            f"MODEL_{tier.upper()} is not configured. Set it to a model available on the "
+            "configured LLM_BACKEND, or set STEWARD_DEMO=1."
+        )
+    return value
+
+
+def _is_anthropic_model(model_id: str) -> bool:
+    """Detect Claude model ids (with or without the Bedrock provider prefix)."""
+
+    lowered = model_id.lower()
+    return "anthropic." in lowered or lowered.startswith("claude")
 
 
 def redact_value(value: Any, key: str | None = None) -> Any:
@@ -114,14 +154,7 @@ class BedrockLLM:
         load_dotenv(override=False)
 
     def model_id(self, tier: Literal["sol", "terra", "luna"]) -> str:
-        defaults = {"sol": DEFAULT_SOL, "terra": DEFAULT_TERRA, "luna": DEFAULT_LUNA}
-        value = os.getenv(f"MODEL_{tier.upper()}", defaults[tier]).strip()
-        if not value or value == defaults[tier] or value.startswith("replace-with-"):
-            raise LLMUnavailableError(
-                f"MODEL_{tier.upper()} is not configured. Set it to an enabled Bedrock model ID, "
-                "or set STEWARD_DEMO=1."
-            )
-        return value
+        return resolve_model_id(tier)
 
     def _bedrock_client(self) -> Any:
         if self._client is None:
@@ -161,6 +194,12 @@ class BedrockLLM:
             "Analyze only the following redacted configuration metadata. Do not infer data values, "
             "credentials, or events. Return valid JSON only.\n\nMETADATA:\n" + serialized
         )
+        # Anthropic Claude models (Opus 4.7+) reject sampling parameters, so
+        # the deterministic temperature=0 request is sent only to models that
+        # accept it. Claude requests rely on prompt design for stability.
+        inference_config: dict[str, Any] = {"maxTokens": max_tokens}
+        if not _is_anthropic_model(model_id):
+            inference_config["temperature"] = 0
         last_error: Exception | None = None
         for attempt in range(self.max_attempts):
             started = time.monotonic()
@@ -169,7 +208,7 @@ class BedrockLLM:
                     modelId=model_id,
                     system=[{"text": system_instruction}],
                     messages=[{"role": "user", "content": [{"text": prompt}]}],
-                    inferenceConfig={"maxTokens": max_tokens, "temperature": 0},
+                    inferenceConfig=inference_config,
                 )
                 text = "".join(
                     block.get("text", "")
@@ -202,6 +241,155 @@ class BedrockLLM:
         raise RuntimeError(
             f"Bedrock {operation} failed after {self.max_attempts} attempts"
         ) from last_error
+
+
+@dataclass
+class OpenAICompatibleLLM:
+    """Chat-completions client for any OpenAI-compatible endpoint.
+
+    Points at a local Ollama by default (``http://localhost:11434/v1``), so a
+    security team can run the full model tier with zero cloud dependency and
+    zero data egress. ``LLM_BASE_URL`` retargets it at vLLM, LM Studio, or a
+    hosted OpenAI-compatible API; ``LLM_API_KEY`` adds a bearer token when the
+    endpoint requires one. Model names come from the same ``MODEL_*`` contract
+    as the Bedrock backend. The redaction boundary is identical: only
+    :func:`safe_json_payload` output ever leaves this process.
+    """
+
+    base_url: str | None = None
+    api_key: str | None = None
+    timeout_seconds: int = 120
+    max_attempts: int = 3
+    logger: CostLatencyLogger = field(default_factory=CostLatencyLogger)
+
+    def __post_init__(self) -> None:
+        try:
+            from dotenv import load_dotenv
+        except ImportError:  # pragma: no cover - optional convenience dependency
+            return
+        load_dotenv(override=False)
+
+    def model_id(self, tier: Literal["sol", "terra", "luna"]) -> str:
+        return resolve_model_id(tier)
+
+    def _endpoint(self) -> str:
+        base = (
+            self.base_url
+            or os.getenv("LLM_BASE_URL", DEFAULT_OPENAI_COMPATIBLE_BASE_URL)
+        ).strip().rstrip("/")
+        return f"{base}/chat/completions"
+
+    def _send(self, body: bytes) -> str:
+        """POST the request and return the response body text.
+
+        Isolated so tests can exercise the redaction boundary with a fake
+        transport, exactly like the Bedrock tests capture the boto3 client.
+        """
+
+        headers = {"Content-Type": "application/json"}
+        api_key = (self.api_key or os.getenv("LLM_API_KEY", "")).strip()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        request = urllib.request.Request(
+            self._endpoint(), data=body, headers=headers, method="POST"
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout_seconds) as response:
+            return response.read().decode("utf-8")
+
+    def call_json(
+        self,
+        *,
+        operation: str,
+        payload: Any,
+        tier: Literal["sol", "terra", "luna"] = "terra",
+        system_instruction: str,
+        max_tokens: int = 1_500,
+    ) -> Any:
+        """Make a redacted structured-output request against /chat/completions."""
+
+        model_id = self.model_id(tier)
+        serialized = safe_json_payload(payload)
+        prompt = (
+            "Analyze only the following redacted configuration metadata. Do not infer data values, "
+            "credentials, or events. Return valid JSON only.\n\nMETADATA:\n" + serialized
+        )
+        body = json.dumps(
+            {
+                "model": model_id,
+                "messages": [
+                    {"role": "system", "content": system_instruction},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": max_tokens,
+                "temperature": 0,
+            }
+        ).encode("utf-8")
+
+        last_error: Exception | None = None
+        for attempt in range(self.max_attempts):
+            started = time.monotonic()
+            try:
+                raw = self._send(body)
+                decoded = json.loads(raw)
+                text = str(
+                    (decoded.get("choices") or [{}])[0].get("message", {}).get("content", "")
+                )
+                parsed = _extract_json(text)
+                self.logger.record(
+                    operation=operation,
+                    model_id=model_id,
+                    elapsed_ms=int((time.monotonic() - started) * 1000),
+                    status="ok",
+                    input_chars=len(serialized),
+                    output_chars=len(text),
+                )
+                return parsed
+            except (
+                Exception
+            ) as exc:  # transport and parse errors are intentionally contained here
+                last_error = exc
+                self.logger.record(
+                    operation=operation,
+                    model_id=model_id,
+                    elapsed_ms=int((time.monotonic() - started) * 1000),
+                    status="error",
+                    input_chars=len(serialized),
+                )
+                if attempt + 1 < self.max_attempts:
+                    time.sleep(0.35 * (2**attempt))
+        raise RuntimeError(
+            f"OpenAI-compatible {operation} failed after {self.max_attempts} attempts"
+        ) from last_error
+
+
+LLMBackend = BedrockLLM | OpenAICompatibleLLM
+
+_OPENAI_COMPATIBLE_BACKENDS = frozenset({"openai", "openai-compatible", "ollama", "local"})
+
+
+def create_llm() -> LLMBackend:
+    """Build the configured model backend from ``LLM_BACKEND``.
+
+    ``bedrock`` (the default) preserves the original behavior; the
+    OpenAI-compatible aliases select the local/hosted chat-completions client.
+    Backend choice never affects the deterministic tier or the citation gate.
+    """
+
+    try:
+        from dotenv import load_dotenv
+    except ImportError:  # pragma: no cover - optional convenience dependency
+        pass
+    else:
+        load_dotenv(override=False)
+    backend = os.getenv("LLM_BACKEND", "bedrock").strip().lower()
+    if backend in _OPENAI_COMPATIBLE_BACKENDS:
+        return OpenAICompatibleLLM()
+    if backend == "bedrock":
+        return BedrockLLM()
+    raise LLMUnavailableError(
+        f"Unknown LLM_BACKEND {backend!r}. Use 'bedrock' or 'openai-compatible' "
+        "(aliases: 'openai', 'ollama', 'local')."
+    )
 
 
 TOOL_CLASSIFICATION_SYSTEM = """You are a governance analyst. Classify each tool by its business

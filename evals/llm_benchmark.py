@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -320,9 +321,9 @@ def _print_report(report: Mapping[str, Any]) -> None:
         print(f"  [{outcome['label']:>18}] {marker} {outcome['agent_id']} ({outcome['category']})")
 
 
-def run_live() -> int:
+def run_live(output_path: Path = RESULTS_PATH) -> int:
     from steward.findings import analyze_fleet as deterministic_analyze_fleet
-    from steward.llm import BedrockLLM
+    from steward.llm import create_llm
     from steward.loaders import load_inventory
     from steward.pipeline import analyze_fleet
 
@@ -337,7 +338,7 @@ def run_live() -> int:
             f"{[finding.id for finding in deterministic.findings]}"
         )
 
-    llm = RecordingLLM(inner=BedrockLLM())
+    llm = RecordingLLM(inner=create_llm())
     result = analyze_fleet(fleet, tools, llm=llm, enable_llm=True)
     llm_findings = _llm_findings(result.findings)
 
@@ -346,13 +347,19 @@ def run_live() -> int:
     report = score(scenarios, llm_findings, fleet_doc, tools_doc, llm.raw_proposals)
 
     enrichment = result.metadata.get("llm_enrichment", {})
+    model_ids = sorted({llm.model_id("terra"), llm.model_id("sol")})
+    backend = os.getenv("LLM_BACKEND", "bedrock").strip().lower() or "bedrock"
+    model_label = " + ".join(model_ids)
     report_out = {
         "benchmark_version": "0.1",
-        "mode": "cached live OpenAI gpt-oss-120b Bedrock result",
+        "mode": f"cached live result ({model_label} via {backend})",
+        "backend": backend,
+        "model_ids": model_ids,
         "disclosure": (
-            "This cached benchmark result was produced by a real OpenAI gpt-oss-120b Amazon "
-            "Bedrock run of Steward's enrichment pipeline against the committed labeled scenario "
-            "fleet. Replays and CI re-verify this cache; they never call Bedrock."
+            f"This cached benchmark result was produced by a real live run of Steward's "
+            f"enrichment pipeline ({model_label} via the {backend} backend) against the "
+            "committed labeled scenario fleet. Replays and CI re-verify this cache; they "
+            "never call a model."
         ),
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "enrichment_status": enrichment.get("status"),
@@ -377,9 +384,9 @@ def run_live() -> int:
     ]
     if any("[REDACTED]" in identifier for identifier in structural_ids):
         raise BenchmarkError("Unexpected id-level redaction corruption in benchmark result dump.")
-    RESULTS_PATH.write_text(json.dumps(report_out, indent=1) + "\n", encoding="utf-8")
+    output_path.write_text(json.dumps(report_out, indent=1) + "\n", encoding="utf-8")
     _print_report(report_out)
-    print(f"OK: wrote {RESULTS_PATH}")
+    print(f"OK: wrote {output_path}")
     return 0
 
 
@@ -419,11 +426,18 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--live",
         action="store_true",
-        help="Run the real Bedrock enrichment pipeline and rewrite the cached result.",
+        help="Run the real enrichment pipeline on the configured backend and write the result.",
+    )
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=RESULTS_PATH,
+        help="Where a --live run writes its result. Point elsewhere for A/B runs so the "
+        "committed cache is untouched; verification always reads the committed cache.",
     )
     args = parser.parse_args(argv)
     try:
-        return run_live() if args.live else verify_cached()
+        return run_live(args.output) if args.live else verify_cached()
     except Exception as exc:
         print(f"BENCHMARK_ERROR: {exc}", file=sys.stderr)
         return 1

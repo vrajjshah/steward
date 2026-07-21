@@ -185,7 +185,17 @@ The deterministic tier is the CI gate: it must retain perfect precision and reca
 
 ### Tier 2 — runtime model enrichment (optional live mode)
 
-Runtime enrichment runs on OpenAI `gpt-oss-120b` on Amazon Bedrock; GPT-5.6 Sol/Terra/Luna drop in via the same `MODEL_*` env vars on accounts that have access. The optional Bedrock path uses the Converse API through `boto3`. It is intentionally one module—[`steward/llm.py`](steward/llm.py)—with retries, timeouts, structured JSON parsing, and a cost/latency-only logger. The committed zero-key cache was produced by a real `gpt-oss-120b` Bedrock analysis of the synthetic fleet.
+The model tier is **backend-pluggable** — one module ([`steward/llm.py`](steward/llm.py)) with retries, timeouts, structured JSON parsing, a cost/latency-only logger, and the same redaction boundary on every backend. Select with `LLM_BACKEND`:
+
+| `LLM_BACKEND` | What it talks to | Who it's for |
+| --- | --- | --- |
+| `ollama` / `local` / `openai-compatible` | Any `/v1/chat/completions` endpoint; defaults to a local Ollama at `http://localhost:11434/v1` (`LLM_BASE_URL` retargets, `LLM_API_KEY` optional) | **Recommended for security teams**: the full model tier with no cloud account and no data egress — nothing leaves the machine |
+| `bedrock` (default) | Amazon Bedrock via the Converse API (`boto3`) | Teams already on AWS. Open-weight `gpt-oss-120b` is the tested default; **Anthropic Claude models are verified drop-ins** (Steward automatically omits sampling parameters, which current Claude models reject) |
+| `openai` | Any hosted OpenAI-compatible API | Teams standardized on a hosted provider |
+
+Every backend uses the same `MODEL_SOL`/`MODEL_TERRA`/`MODEL_LUNA` tier contract — a Bedrock model or inference-profile ID, an Ollama tag, or a hosted model name. **Steward's trust properties are deliberately model- and backend-independent**: the deterministic floor never calls a model, and a proposal from any backend passes the same graph-citation verifier before it can surface. The committed zero-key cache was produced by a real `gpt-oss-120b` Bedrock analysis of the synthetic fleet.
+
+**Which model should you run?** We A/B-tested the toxic-combination tier on the [labeled 20-scenario benchmark](#how-accurate-is-the-model-tier): open-weight `gpt-oss-120b` and Claude Opus 4.8 (both on Bedrock) scored **identically perfect** — 8/8 in-scope recall, 0/8 false positives, 0/4 out-of-scope flags, zero hallucinated citations — at roughly $0.008 vs. $0.29 per benchmark run. At measured-accuracy parity, the recommended Bedrock default stays the open-weight model on cost; Claude is a config-only swap for orgs that standardize on it. Honest caveat: a 20-scenario benchmark cannot separate two models that both hit its ceiling — the claim is parity *on this benchmark*, not equivalence in general.
 
 Tool classification is bounded to six tools per request. Each batch has its own retry/backoff, incomplete batches are retried one tool at a time, and any final fallback label is explicitly marked unclassified in `metadata.llm_enrichment`. Toxic-combination reasoning is one small request per agent’s effective access, so a failed model response is recorded against that agent instead of silently suppressing all model-derived findings. The report and dashboard surface partial enrichment honestly.
 
@@ -204,16 +214,17 @@ The model tier is measured on a committed, labeled 20-scenario benchmark ([`eval
 
 On the cached live `gpt-oss-120b` run ([`evals/benchmark/results.json`](evals/benchmark/results.json)), the model tier flagged **8/8 in-scope toxic pairs (recall 1.000)** with **0/8 false positives (precision 1.000)** and **zero hallucinated citations**, and correctly declined to flag the 4 out-of-scope pairs its prompt assigns to the deterministic floor. This is a 20-scenario synthetic measurement from a single temperature-0 run — evidence the egress lens separates real toxic pairs from near-misses, not a real-world accuracy claim. `make llm-benchmark` re-verifies the committed result offline; `make llm-benchmark-live` reruns it against configured Bedrock models. Details and limits: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#how-accurate-is-tier-2-actually).
 
-Configure the `MODEL_*` values with enabled Bedrock model IDs. In the current runtime they point to OpenAI `gpt-oss-120b`; accounts with GPT-5.6 Sol/Terra/Luna access can point the same variables at those models instead:
+Getting started with either backend:
 
 ```bash
 cp .env.example .env
-# edit AWS_REGION, MODEL_SOL, MODEL_TERRA, MODEL_LUNA
+# Local (recommended for security teams): LLM_BACKEND=ollama and MODEL_* set to your local tags
+# Bedrock: LLM_BACKEND=bedrock, AWS_REGION, and MODEL_* set to enabled model IDs
 unset STEWARD_DEMO
 steward analyze
 ```
 
-Credentials use the standard AWS credential chain. Model IDs are environment variables; no key or model identifier is hard-coded or committed.
+Bedrock credentials use the standard AWS credential chain; the local backend needs no credentials at all. Model IDs are environment variables; no key or model identifier is hard-coded or committed.
 
 ### Secret discipline
 

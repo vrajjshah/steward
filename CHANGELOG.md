@@ -7,6 +7,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Pluggable model backends** (`LLM_BACKEND`): the enrichment tier now runs on
+  (1) a local Ollama or any OpenAI-compatible `/v1/chat/completions` endpoint —
+  zero cloud account, zero data egress, the recommended posture for security
+  teams; (2) Amazon Bedrock (default) with open-weight `gpt-oss-120b` as the
+  tested default and Anthropic Claude models as verified drop-ins (sampling
+  parameters are automatically omitted for Claude, which rejects them); or
+  (3) any hosted OpenAI-compatible API. All backends share the same redaction
+  boundary, metadata-only cost logger, and `MODEL_*` tier contract; trust
+  properties are model- and backend-independent. An A/B of the toxic-combination
+  tier on the labeled benchmark measured `gpt-oss-120b` and Claude Opus 4.8 at
+  identical ceiling accuracy (8/8 recall, 0 FP, 0 hallucinated citations), so
+  the open-weight model remains the recommended Bedrock default on cost. The
+  accuracy benchmark gained `--output` for A/B runs and now records the actual
+  backend/model ids in its provenance metadata.
 - **Control-framework mapping**: every verified finding carries structured,
   versioned references into NIST SP 800-53 Rev. 5, SOC 2 TSC (2017), ISO/IEC
   27001:2022, SOX ITGC, and the EU AI Act (Art. 12/14), surfaced on finding

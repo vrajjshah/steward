@@ -149,13 +149,24 @@ every citation. This tier is the CI gate: it must hold **precision = recall =
 clean control agents. A regression, an invalid citation, or a false positive
 fails the build.
 
-**Tier 2 — model generalization.** Optional. `gpt-oss-120b` on Amazon Bedrock
-(any Converse-capable model drops in via `MODEL_*` env vars — GPT-5.6 Sol/Terra/
-Luna on accounts that have them). It (a) classifies unfamiliar tools into
-business capabilities, (b) infers each agent's *Needed* capabilities, and (c)
-proposes *additional* toxic combinations beyond the hardcoded set. Its output is
-**measured separately and is not required-perfect** — it is a recall aid on top
-of a trustworthy floor, not a replacement for it.
+**Tier 2 — model generalization.** Optional and **backend-pluggable**
+(`LLM_BACKEND`): a local Ollama or any OpenAI-compatible `/v1/chat/completions`
+endpoint (the zero-egress posture recommended for security teams), or Amazon
+Bedrock via Converse — open-weight `gpt-oss-120b` as the tested default, with
+Anthropic Claude models as verified drop-ins (Steward omits sampling
+parameters for Claude, which current Claude models reject). Every backend
+shares one redaction boundary, one cost/latency logger, and one `MODEL_*` tier
+contract. The tier (a) classifies unfamiliar tools into business capabilities,
+(b) infers each agent's *Needed* capabilities, and (c) proposes *additional*
+toxic combinations beyond the hardcoded set. Its output is **measured
+separately and is not required-perfect** — it is a recall aid on top of a
+trustworthy floor, not a replacement for it. The trust properties are
+deliberately model- and backend-independent: the floor never calls a model,
+and a proposal from any backend must pass the same citation verifier. An A/B
+on the labeled benchmark (below) measured `gpt-oss-120b` and Claude Opus 4.8
+at identical, ceiling-level accuracy; the open-weight model stays the
+recommended Bedrock default on cost (~1/40th per run), with the caveat that a
+benchmark both models max out cannot rank them.
 
 > The moat is the code around the model, not the prompt inside it. *A skill is
 > advice; Steward is evidence.*

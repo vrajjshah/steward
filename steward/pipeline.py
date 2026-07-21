@@ -23,6 +23,7 @@ from steward.llm import (
     BedrockLLM,
     LLMUnavailableError,
     classify_tools,
+    create_llm,
     identify_toxic_combinations,
     infer_needed_access,
     narrate_finding,
@@ -860,7 +861,7 @@ def analyze_fleet(
     if not enable_llm:
         result.metadata = {"llm_enrichment": {"enabled": False, "reason": "disabled for demo mode"}}
         return result
-    result = _enrich(result, llm or BedrockLLM())
+    result = _enrich(result, llm or create_llm())
     # LLM-generalized findings are generated after the deterministic tier, so
     # apply the same deterministic external-context and control-framework
     # mappings — and the reproducible risk score/rank — at the final public
