@@ -5,7 +5,7 @@
     "buildCommand": "pip install -e ."
   },
   "deploy": {
-    "startCommand": "uvicorn steward.app:app --host 0.0.0.0 --port $PORT",
+    "startCommand": "uvicorn steward.app:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips=*",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
