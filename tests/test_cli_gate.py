@@ -3,12 +3,26 @@
 from __future__ import annotations
 
 import json
+import re
 
 from typer.testing import CliRunner
 
 from steward.cli import app
 
 runner = CliRunner()
+
+_ANSI_ESCAPES = re.compile(r"\x1b\[[0-9;]*m")
+
+
+def _plain(result) -> str:
+    """CLI output with ANSI styling stripped.
+
+    Rich force-enables colored, box-drawn error panels when it detects the
+    GITHUB_ACTIONS environment variable, so raw substring assertions that pass
+    locally fail in CI. Assert against the de-styled text instead.
+    """
+
+    return _ANSI_ESCAPES.sub("", result.output)
 
 
 def _clean_inventory(tmp_path):
@@ -56,8 +70,8 @@ def test_fail_on_exits_nonzero_when_findings_meet_the_threshold(tmp_path) -> Non
     # The synthetic fleet plants critical findings, so the gate must fail —
     # after the findings have been printed for the human reading the CI log.
     assert result.exit_code == 1
-    assert "GATE FAILED" in result.output
-    assert "cited findings" in result.output
+    assert "GATE FAILED" in _plain(result)
+    assert "cited findings" in _plain(result)
 
 
 def test_fail_on_exits_zero_for_a_clean_fleet(tmp_path) -> None:
@@ -78,7 +92,7 @@ def test_fail_on_exits_zero_for_a_clean_fleet(tmp_path) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
-    assert "GATE FAILED" not in result.output
+    assert "GATE FAILED" not in _plain(result)
 
 
 def test_fail_on_rejects_unknown_severity(tmp_path) -> None:
@@ -87,7 +101,7 @@ def test_fail_on_rejects_unknown_severity(tmp_path) -> None:
         ["analyze", "--no-llm", "--fail-on", "spicy", "--state-dir", str(tmp_path / "state")],
     )
     assert result.exit_code != 0
-    assert "critical, high, medium, low" in result.output
+    assert "critical, high, medium, low" in _plain(result)
 
 
 def test_fail_on_drift_requires_traces(tmp_path) -> None:
@@ -96,7 +110,7 @@ def test_fail_on_drift_requires_traces(tmp_path) -> None:
         ["analyze", "--no-llm", "--fail-on-drift", "--state-dir", str(tmp_path / "state")],
     )
     assert result.exit_code != 0
-    assert "--traces" in result.output
+    assert "--traces" in _plain(result)
 
 
 def test_fail_on_drift_exits_nonzero_on_reconciliation_drift(tmp_path) -> None:
@@ -114,4 +128,4 @@ def test_fail_on_drift_exits_nonzero_on_reconciliation_drift(tmp_path) -> None:
     )
     # The sample trace deliberately contains used-but-not-granted drift.
     assert result.exit_code == 1
-    assert "runtime drift detected" in result.output
+    assert "runtime drift detected" in _plain(result)
