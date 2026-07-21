@@ -79,3 +79,27 @@ def test_report_and_review_queue_rank_by_score() -> None:
     assert card_scores == sorted(card_scores, reverse=True)
     # The highest-ranked review card belongs to an agent with findings.
     assert packet["risk_cards"][0]["findings"]
+
+
+def test_executive_summary_rolls_up_reproducible_numbers() -> None:
+    from steward.reporting import build_fleet_audit_report, render_markdown_report
+
+    result = _analyzed()
+    report = build_fleet_audit_report(
+        result.fleet,
+        result.findings,
+        tools=result.tools,
+        effective_access=result.effective_access,
+    )
+    summary = report["executive_summary"]
+    top_risks = summary["top_risks"]
+    assert 1 <= len(top_risks) <= 5
+    assert top_risks[0]["rank"] == 1
+    scores = [risk["risk_score"] for risk in top_risks]
+    assert scores == sorted(scores, reverse=True)
+    assert summary["framework_coverage"]["frameworks"] >= 4
+    assert sum(summary["review_status_counts"].values()) == len(result.fleet.agents)
+
+    markdown = render_markdown_report(report)
+    assert "Top risks (composite score, reproducible every run):" in markdown
+    assert "Certification review status:" in markdown

@@ -18,6 +18,11 @@ see the [README](../README.md).
 
 ---
 
+> Positioning in one line: Steward is **non-human identity (NHI) governance
+> for AI agents** — configuration-time, read-only, self-hosted, and
+> evidence-first, so adopting it carries no production risk and its output is
+> usable as audit evidence.
+
 ## 1. The problem
 
 Enterprises are deploying fleets of AI agents that hold real entitlements —
@@ -207,6 +212,48 @@ The model's Tier-2 job is to widen the *first* row — spotting toxic combinatio
 (e.g. `read_crm` + `send_external_email`) that no hardcoded rule anticipated —
 while the deterministic pairs guarantee the crown-jewel findings never depend on
 model variance.
+
+### The lethal trifecta (named pattern check)
+
+One deterministic rule deserves its name: an agent whose **effective** access
+spans (1) private-data reads, (2) exposure to untrusted content, and (3) an
+exfiltration channel is one prompt injection away from data theft — [Simon
+Willison's "lethal trifecta"](https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/).
+Steward flags the pattern as a critical, citation-verified `sod` finding
+(`rule_id: lethal_trifecta`); a leg reached only through delegation still
+completes it. The shipped synthetic fleet deliberately contains no trifecta
+agent, so the check is **zero-noise today** — the test suite proves both that
+silence and the detection itself with crafted fixtures, including a trifecta
+completed through a delegation edge. The three capability-class sets live in
+`steward/capability_classes.py`, shared with the risk score below so the two
+features cannot drift apart.
+
+## 5b. Risk prioritization and control-framework context
+
+Two deterministic layers turn verified findings into a CISO-ready queue:
+
+**Composite risk score (`steward/scoring.py`).** Every finding gets a 0–100
+score an auditor can recompute by hand: base severity (critical 40 / high 30 /
+medium 20 / low 10) + blast radius (+4 per high-impact capability in effective
+access, capped +20) + data sensitivity (+10 for sensitive-read reach) +
+exploitability (+10 direct grant, +5 delegated-only, +10 more when the agent is
+exposed to untrusted content). The factor breakdown ships with the score, and
+findings, reports, and the certification queue all rank by it. No model call is
+involved: the same fleet produces the same ranking every run.
+
+**Control-framework mapping (`steward/control_mapping.py`).** Each finding
+carries structured references into NIST SP 800-53 Rev. 5, SOC 2 TSC (2017),
+ISO/IEC 27001:2022, SOX ITGC, and the EU AI Act (Art. 14 human oversight for
+SoD; Art. 12 record-keeping for the ledger), with framework versions cited in
+the data. The audit report aggregates them into a coverage matrix, and the
+signed ledger + certification queue map separately as *process* controls
+(AU-2/AU-6, AC-2 review, A.8.15). Everywhere it appears, the mapping is framed
+as speaking the auditor's language — never as a compliance certification.
+
+The report's executive summary composes both: fleet scope, top risks by
+composite score, framework coverage counts, and certification review status —
+the one-page rollup a CISO hands upward, derived entirely from reproducible
+data.
 
 ### Mapping to OWASP LLM Top 10 (2025)
 

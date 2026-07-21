@@ -8,7 +8,12 @@
 
 ![Steward dashboard — a 30-agent fleet with 10 cited findings across two trust tiers](docs/dashboard.png)
 
-Steward is a small, open-source agent safety and blast-radius analyzer. Point it at an agent fleet's grants, tool use, ownership, and delegation topology. It computes each agent's **effective access**, detects dangerous combinations, and emits only findings that cite the real agent, tool, and delegation entities that caused them.
+Steward is a small, open-source agent safety and blast-radius analyzer — **non-human identity (NHI) governance for AI agents**. Point it at an agent fleet's grants, tool use, ownership, and delegation topology. It computes each agent's **effective access**, detects dangerous combinations, and emits only findings that cite the real agent, tool, and delegation entities that caused them. Agents are identities; Steward brings them the discipline — SoD, least privilege, certification, accountable ownership — that human identities already get.
+
+**Why a security team can say yes quickly:**
+
+- **Zero-risk deployment.** Configuration-time and read-only: Steward analyzes config metadata, needs no production access, changes nothing, and the deterministic tier runs with no cloud account or key — nothing leaves the machine. The optional model tier sends redacted configuration metadata only, never payloads or credentials.
+- **Evidence an auditor can use.** Findings carry graph-verified citations, a reproducible 0–100 risk score, and versioned control-framework references (NIST 800-53, SOC 2, ISO 27001, SOX ITGC, EU AI Act); review decisions land in an Ed25519-signed, tamper-evident ledger verifiable offline.
 
 The demo opens with a familiar failure mode: `SupportBot` can read customer PII and send email outside the company. That is a verified exfiltration path—not a hypothetical warning. The same engine is also an agentic identity-governance tool: effective-access analysis, segregation of duties (SoD), least privilege, ownership accountability, and access certification.
 
@@ -308,12 +313,14 @@ Events naming unknown agents or tools stay visible as drift lines (a retired ide
 
 ## Certification and IGA reporting
 
-Every agent gets a risk card with identity, owner, direct/effective access, findings, finding-source labels, risk tier, recommended action, and an approve/revoke/flag review state. The fleet report maps the same safety signals to enterprise controls:
+Every agent gets a risk card with identity, owner, direct/effective access, findings, finding-source labels, risk tier, a deterministic composite risk score, recommended action, and an approve/revoke/flag review state. The fleet report opens with a board-ready executive summary — fleet size, top risks ranked by the reproducible score, framework coverage, and review status — and maps the same safety signals to enterprise controls:
 
-- SoD and exfiltration capability combinations → separation-of-duties / SOX ITGC context
+- SoD, exfiltration, and lethal-trifecta capability combinations → separation-of-duties / SOX ITGC context
 - unused grants → least privilege and access certification
 - delegated blast radius → confused-deputy / delegated-authority control
 - no owner → accountability
+
+Each finding also carries structured, versioned control-framework references — NIST SP 800-53 Rev. 5, SOC 2 TSC, ISO/IEC 27001:2022, SOX ITGC, and the EU AI Act — summarized in a coverage matrix. That is auditor context in the auditor's language, deliberately not a compliance certification.
 
 The **Granted vs. Needed** signal is shown separately from deterministic findings. It is model-assisted inference from the agent's declared purpose, not a claim about observed runtime necessity. It is not scored by the deterministic synthetic-fleet eval.
 

@@ -30,7 +30,24 @@
   <div class="report-summary-card"><span>Fleet scope</span><strong>{{ report.scope.agents }} agents</strong><small>{{ report.scope.tools }} tools · {{ report.scope.delegation_edges }} delegation edges</small></div>
   <div class="report-summary-card summary-critical"><span>Verified findings</span><strong>{{ report.executive_summary.findings }}</strong><small>{{ report.executive_summary.critical_agents }} critical-risk agents</small></div>
   <div class="report-summary-card"><span>Certification queue</span><strong>{{ report.executive_summary.review_status }} pending</strong><small>Review each agent risk card</small></div>
+  {% if report.executive_summary.framework_coverage and report.executive_summary.framework_coverage.frameworks %}
+  <div class="report-summary-card"><span>Framework coverage</span><strong>{{ report.executive_summary.framework_coverage.controls }} controls</strong><small>{{ report.executive_summary.framework_coverage.frameworks }} published frameworks · context, not certification</small></div>
+  {% endif %}
 </section>
+
+{% if report.executive_summary.top_risks %}
+<section class="report-section" aria-labelledby="top-risks-title">
+  <div class="section-heading compact-heading"><div><div class="eyebrow">Executive summary</div><h2 id="top-risks-title">Top risks by composite score</h2></div></div>
+  <p class="report-prose">Ranked by Steward's deterministic risk score — reproducible on every run, so the board sees the same ordering the auditor can recompute.</p>
+  <ol class="report-prose">
+    {% for risk in report.executive_summary.top_risks %}
+    <li><a class="agent-link" href="/risk-cards/{{ risk.agent_id }}">{{ risk.agent_id }}</a> — {{ risk.title }}
+      {% if risk.risk_score is not none %}<span class="score-badge">risk {{ risk.risk_score }}/100</span>{% endif %}
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
 
 {% if report.mcp_threat_context %}
 <section class="report-section" aria-labelledby="mcp-context-title">

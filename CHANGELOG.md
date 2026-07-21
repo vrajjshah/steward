@@ -22,6 +22,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   spans private-data reads, untrusted-content exposure, and an exfiltration
   channel. Zero-noise on the shipped fleet (proven in tests, including a
   delegation-completed trifecta); mapped to AC-6/AC-5 and OWASP LLM01.
+- **Executive summary for CISOs**: the audit report (JSON/Markdown/HTML) opens
+  with a board-ready rollup — fleet scope, top risks ranked by the reproducible
+  composite score, control-framework coverage counts, and certification review
+  status — derived entirely from the same verified findings as the rest of the
+  report. Docs position Steward as non-human identity (NHI) governance with
+  zero-risk deployment (config-time, read-only, nothing leaves the machine) and
+  an auditor-usable evidence trail.
 
 ### Planned
 - Live connectors for agent registries, MCP gateways, and cloud IAM.

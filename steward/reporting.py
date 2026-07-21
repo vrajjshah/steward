@@ -746,6 +746,22 @@ def build_fleet_audit_report(
         for target in list_for(agent, "can_delegate_to")
     ]
 
+    framework_coverage = control_framework_coverage(public_findings)
+    review_status_counts: dict[str, int] = defaultdict(int)
+    for card in packet["risk_cards"]:
+        review_status_counts[str(card["review"].get("status", "pending"))] += 1
+    top_risks = [
+        {
+            "rank": index + 1,
+            "agent_id": finding["agent_id"],
+            "title": finding["title"],
+            "severity": finding["severity"],
+            "risk_score": finding.get("risk_score"),
+            "check_type": finding["check_type"],
+        }
+        for index, finding in enumerate(public_findings[:5])
+    ]
+
     return {
         "schema_version": "0.1",
         "generated_at": packet["generated_at"],
@@ -761,11 +777,20 @@ def build_fleet_audit_report(
             "severity_counts": _severity_counts(public_findings),
             "critical_agents": packet["summary"]["critical_agents"],
             "review_status": packet["summary"]["pending_reviews"],
+            # Board-facing one-page rollup: what a CISO hands upward. Every
+            # number is derived from the same verified findings as the rest of
+            # the report — reproducible, not editorialized.
+            "top_risks": top_risks,
+            "framework_coverage": {
+                "frameworks": len(framework_coverage),
+                "controls": sum(len(row["controls"]) for row in framework_coverage),
+            },
+            "review_status_counts": dict(sorted(review_status_counts.items())),
         },
         "control_mapping": controls,
         # Structured, versioned framework references aggregated across the
         # verified findings — auditor context, not a compliance certification.
-        "control_framework_coverage": control_framework_coverage(public_findings),
+        "control_framework_coverage": framework_coverage,
         # Controls the governance process itself (signed ledger, certification
         # queue) speaks to, independent of any individual finding.
         "governance_process_controls": [
@@ -813,13 +838,50 @@ def render_markdown_report(report: Mapping[str, Any]) -> str:
         "",
         "## Executive summary",
         "",
-        f"{summary.get('findings', 0)} cited findings across {summary.get('critical_agents', 0)} critical-risk agents.",
+        f"{summary.get('findings', 0)} cited findings across {summary.get('critical_agents', 0)} critical-risk agents. "
+        f"Fleet: {scope.get('agents', 0)} agent identities, {scope.get('tools', 0)} tools, "
+        f"{scope.get('delegation_edges', 0)} delegation edges.",
         "",
-        "## Control mapping",
-        "",
-        "| Signal | Control language | Findings | Highest risk |",
-        "| --- | --- | ---: | --- |",
     ]
+    top_risks = summary.get("top_risks", [])
+    if top_risks:
+        lines.extend(
+            [
+                "**Top risks (composite score, reproducible every run):**",
+                "",
+            ]
+        )
+        for risk in top_risks:
+            score = risk.get("risk_score")
+            score_text = f"{score}/100" if score is not None else risk.get("severity", "")
+            lines.append(
+                f"{risk.get('rank', '?')}. `{risk.get('agent_id', '')}` — {risk.get('title', '')} ({score_text})"
+            )
+        lines.append("")
+    framework_summary = summary.get("framework_coverage", {})
+    review_counts = summary.get("review_status_counts", {})
+    if framework_summary or review_counts:
+        if framework_summary.get("frameworks"):
+            lines.append(
+                f"Findings map to {framework_summary.get('controls', 0)} controls across "
+                f"{framework_summary.get('frameworks', 0)} published frameworks (see coverage matrix; "
+                "context, not a certification)."
+            )
+        if review_counts:
+            lines.append(
+                "Certification review status: "
+                + ", ".join(f"{count} {status}" for status, count in review_counts.items())
+                + "."
+            )
+        lines.append("")
+    lines.extend(
+        [
+            "## Control mapping",
+            "",
+            "| Signal | Control language | Findings | Highest risk |",
+            "| --- | --- | ---: | --- |",
+        ]
+    )
     for control in report.get("control_mapping", []):
         lines.append(
             f"| {control.get('label', '')} | {control.get('control_mapping', '')} | "

@@ -40,6 +40,18 @@ tier — forced through graph-citation verification before it can surface. The
 eval gate, the labeled model-tier benchmark, and the signed ledger are all
 runnable in one clone.
 
+**CISOs and security leadership.** Steward is non-human identity (NHI)
+governance for the newest identity population, and it clears the two bars a
+security leader actually applies to new tooling. First, **zero-risk
+deployment**: it is configuration-time and read-only — no production access,
+no agent modification, no data leaving the machine (the deterministic tier
+needs no cloud account at all, and the optional model tier sends redacted
+config metadata only). Second, **evidence, not opinions**: a reproducible
+0–100 risk ranking for the board, versioned control-framework references
+(NIST 800-53, SOC 2, ISO 27001, SOX ITGC, EU AI Act) for the auditor, and a
+tamper-evident signed ledger proving what was found and what was decided. The
+report's executive summary is the one-page artifact that goes upward.
+
 ## Who it is *not* for (today)
 
 Steward is configuration-time analysis plus a narrow enforcement demo. It is
