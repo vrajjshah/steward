@@ -16,6 +16,11 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
+from .capability_classes import (
+    EXFILTRATION_TOOL_IDS,
+    SENSITIVE_READ_TOOL_IDS,
+    UNTRUSTED_CONTENT_TOOL_IDS,
+)
 from .control_mapping import annotate_findings_with_control_frameworks
 from .graph import AccessProvenance, EffectiveAccessGraph, delegation_edge_id
 from .incident_grounding import ground_findings_in_real_world_context
@@ -27,6 +32,7 @@ from .models import (
     Evidence,
     Finding,
     Fleet,
+    RealWorldIncident,
     ToolCatalog,
 )
 from .scoring import score_and_rank_findings
@@ -354,6 +360,79 @@ def find_escalation_paths(
     return findings
 
 
+LETHAL_TRIFECTA_SOURCE = RealWorldIncident(
+    title="The lethal trifecta for AI agents",
+    date="Simon Willison, 16 Jun 2025",
+    url="https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/",
+    relevance=(
+        "Willison names the canonical agent-exfiltration pattern: private-data access, exposure to "
+        "untrusted content, and an external communication channel in one agent. This reference explains "
+        "the risk class; the evidence for this finding is the cited access graph."
+    ),
+)
+
+
+def find_lethal_trifecta(
+    fleet: Fleet,
+    graph: EffectiveAccessGraph | None = None,
+) -> list[Finding]:
+    """Flag agents whose effective access spans all three trifecta classes.
+
+    An agent that can read private data, is exposed to content the
+    organization does not control, and holds an external egress channel is one
+    prompt injection away from exfiltration. The three capability classes are
+    matched by known tool id (the same honest limitation as the crown-jewel
+    rules) against *effective* access, so a leg reached only through
+    delegation still completes the trifecta.
+    """
+
+    graph = graph or EffectiveAccessGraph(fleet)
+    findings: list[Finding] = []
+    for agent in sorted(fleet.agents, key=lambda item: item.id):
+        effective_tools = graph.effective_tools(agent.id)
+        legs = {
+            "private-data access": sorted(effective_tools & SENSITIVE_READ_TOOL_IDS),
+            "untrusted-content exposure": sorted(effective_tools & UNTRUSTED_CONTENT_TOOL_IDS),
+            "exfiltration channel": sorted(effective_tools & EXFILTRATION_TOOL_IDS),
+        }
+        if not all(legs.values()):
+            continue
+        evidence = _agent_evidence(
+            agent,
+            "effective access spans private data, untrusted content, and an exfiltration channel",
+        )
+        for tool_ids in legs.values():
+            for tool_id in tool_ids:
+                evidence.extend(_access_evidence(agent, graph.provenance_for(agent.id, tool_id)))
+        leg_summary = "; ".join(
+            f"{leg}: {', '.join(tool_ids)}" for leg, tool_ids in legs.items()
+        )
+        findings.append(
+            Finding(
+                id=f"sod:{agent.id}:lethal_trifecta",
+                rule_id="lethal_trifecta",
+                source="deterministic",
+                agent_id=agent.id,
+                check_type="sod",
+                severity="critical",
+                title="Lethal trifecta exposure: private data + untrusted content + exfiltration channel",
+                business_risk=(
+                    f"{agent.name} combines all three legs of the lethal trifecta — {leg_summary}. "
+                    "One prompt injection arriving through the untrusted-content channel can instruct the agent "
+                    "to read private data and deliver it through the egress channel; no additional compromise is required."
+                ),
+                evidence=_deduplicate_evidence(evidence),
+                recommended_action=(
+                    "Break at least one leg: remove the untrusted-content channel, remove the external egress "
+                    "capability, or isolate private-data access into a separately controlled identity."
+                ),
+                control_mapping="Least privilege — separation of private data, untrusted input, and external egress",
+                real_world_incident=[LETHAL_TRIFECTA_SOURCE],
+            )
+        )
+    return findings
+
+
 def find_orphans(fleet: Fleet) -> list[Finding]:
     """Find agents with no accountable business owner."""
 
@@ -397,6 +476,7 @@ def run_deterministic_checks(
     graph = graph or EffectiveAccessGraph(fleet)
     findings = [
         *find_sod_violations(fleet, graph),
+        *find_lethal_trifecta(fleet, graph),
         *find_over_privilege(fleet, graph),
         *find_escalation_paths(fleet, graph),
         *find_orphans(fleet),

@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Control-framework mapping**: every verified finding carries structured,
+  versioned references into NIST SP 800-53 Rev. 5, SOC 2 TSC (2017), ISO/IEC
+  27001:2022, SOX ITGC, and the EU AI Act (Art. 12/14), surfaced on finding
+  cards and in a report coverage matrix; the ledger and certification queue map
+  separately as process controls. Auditor context, not a certification.
+- **Deterministic composite risk score** (0–100, recomputable by hand): base
+  severity + blast radius over high-impact effective capabilities + data
+  sensitivity + exploitability (direct vs. delegated, untrusted-content boost).
+  Findings, reports, and the certification review queue rank by it; the factor
+  breakdown ships in the API and report payloads.
+- **"Lethal trifecta" named check** (after Simon Willison's pattern): a
+  deterministic, citation-verified finding when one agent's *effective* access
+  spans private-data reads, untrusted-content exposure, and an exfiltration
+  channel. Zero-noise on the shipped fleet (proven in tests, including a
+  delegation-completed trifecta); mapped to AC-6/AC-5 and OWASP LLM01.
+
 ### Planned
 - Live connectors for agent registries, MCP gateways, and cloud IAM.
 - Continuous access-certification campaigns and remediation workflows.

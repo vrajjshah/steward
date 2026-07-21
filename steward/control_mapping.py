@@ -135,6 +135,10 @@ CHECK_TYPE_CONTROLS: dict[str, tuple[ControlFrameworkReference, ...]] = {
 RULE_CONTROLS: dict[str, tuple[ControlFrameworkReference, ...]] = {
     "lethal_trifecta": (
         _reference(
+            NIST, "AC-6", "Least Privilege",
+            "Co-holding all three trifecta capability classes exceeds any single function's minimum access.",
+        ),
+        _reference(
             OWASP_LLM, "LLM01", "Prompt Injection",
             "Untrusted content reaching an agent that holds private data and an egress channel is the canonical prompt-injection exfiltration setup.",
         ),

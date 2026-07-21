@@ -660,99 +660,6 @@
  },
  "findings": [
   {
-   "id": "sod:access_bot:it_request_access_grant_access",
-   "rule_id": "it_request_access_grant_access",
-   "source": "deterministic",
-   "agent_id": "access_bot",
-   "check_type": "sod",
-   "severity": "high",
-   "title": "Self-granting privilege path",
-   "business_risk": "The agent can both request and directly grant application access, creating a self\u2011granting privilege path that bypasses segregation of duties. This enables unauthorized or excessive access to be provisioned without independent review, exposing all applications the agent can request to potential confidentiality, integrity, and availability breaches.",
-   "evidence": [
-    {
-     "entity_type": "agent",
-     "entity_id": "access_bot",
-     "detail": "holds this effective-access combination"
-    },
-    {
-     "entity_type": "tool",
-     "entity_id": "grant_access",
-     "detail": "AccessBot has a direct grant of grant_access."
-    },
-    {
-     "entity_type": "tool",
-     "entity_id": "request_access",
-     "detail": "AccessBot has a direct grant of request_access."
-    }
-   ],
-   "recommended_action": "Separate the request and grant functions by revoking the agent's direct grant of the grant_access tool, enforce an independent approval workflow for access grants, and apply least\u2011privilege controls to the agent.",
-   "control_mapping": "Identity governance \u2014 segregation of duties (access request versus access grant)",
-   "owasp_mcp": [],
-   "real_world_incident": []
-  },
-  {
-   "id": "sod:invoice_bot:finance_create_vendor_approve_payment",
-   "rule_id": "finance_create_vendor_approve_payment",
-   "source": "deterministic",
-   "agent_id": "invoice_bot",
-   "check_type": "sod",
-   "severity": "critical",
-   "title": "Critical fraud path: create vendor and approve payment",
-   "business_risk": "InvoiceBot possesses both the create_vendor and approve_payment tool grants, giving a single automated agent the ability to add new vendors and subsequently authorize payments to those vendors. This concentration of authority creates a direct fraud pathway where a malicious or compromised bot could generate fictitious vendor records and approve disbursements without independent oversight, exposing the organization to unauthorized financial loss and SOX ITGC compliance violations.",
-   "evidence": [
-    {
-     "entity_type": "agent",
-     "entity_id": "invoice_bot",
-     "detail": "holds this effective-access combination"
-    },
-    {
-     "entity_type": "tool",
-     "entity_id": "approve_payment",
-     "detail": "InvoiceBot has a direct grant of approve_payment."
-    },
-    {
-     "entity_type": "tool",
-     "entity_id": "create_vendor",
-     "detail": "InvoiceBot has a direct grant of create_vendor."
-    }
-   ],
-   "recommended_action": "Implement segregation of duties by revoking one of the conflicting grants from InvoiceBot (e.g., remove approve_payment or create_vendor), introduce a separate approval workflow that requires an independent human reviewer, and enforce monitoring of vendor creation and payment approval activities.",
-   "control_mapping": "SOX ITGC \u2014 segregation of duties (vendor creation versus payment approval)",
-   "owasp_mcp": [],
-   "real_world_incident": []
-  },
-  {
-   "id": "sod:payroll_bot:hr_add_employee_run_payroll",
-   "rule_id": "hr_add_employee_run_payroll",
-   "source": "deterministic",
-   "agent_id": "payroll_bot",
-   "check_type": "sod",
-   "severity": "critical",
-   "title": "Critical ghost-employee fraud path",
-   "business_risk": "PayrollBot possesses both the add_employee and run_payroll privileges, enabling it to create employee records and immediately trigger payroll payouts. This single point of control creates a critical ghost\u2011employee fraud pathway, exposing the organization to unauthorized disbursements, financial loss, and SOX ITGC segregation\u2011of\u2011duties violations.",
-   "evidence": [
-    {
-     "entity_type": "agent",
-     "entity_id": "payroll_bot",
-     "detail": "holds this effective-access combination"
-    },
-    {
-     "entity_type": "tool",
-     "entity_id": "add_employee",
-     "detail": "PayrollBot has a direct grant of add_employee."
-    },
-    {
-     "entity_type": "tool",
-     "entity_id": "run_payroll",
-     "detail": "PayrollBot has a direct grant of run_payroll."
-    }
-   ],
-   "recommended_action": "Revoke one of the conflicting privileges from PayrollBot to enforce segregation of duties (e.g., restrict add_employee to a separate provisioning system). Implement dual\u2011approval controls for payroll execution, conduct periodic access reviews, and monitor for anomalous employee\u2011creation and payroll\u2011run activity.",
-   "control_mapping": "SOX ITGC \u2014 segregation of duties (employee setup versus payroll execution)",
-   "owasp_mcp": [],
-   "real_world_incident": []
-  },
-  {
    "id": "sod:support_bot:sensitive_data_external_egress",
    "rule_id": "sensitive_data_external_egress",
    "source": "deterministic",
@@ -760,7 +667,7 @@
    "check_type": "sod",
    "severity": "critical",
    "title": "Critical data-exfiltration path",
-   "business_risk": "SupportBot possesses both read access to customer PII and the ability to send external email, creating a direct path for unauthorized disclosure of personally identifiable information. If exploited, this could lead to regulatory violations, loss of customer trust, reputational harm, and potential financial penalties.",
+   "business_risk": "SupportBot can read customer PII and directly send external email, creating a direct path for confidential customer data to be exfiltrated outside the organization, exposing the firm to regulatory violations, financial penalties, and reputational harm.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -778,7 +685,7 @@
      "detail": "SupportBot has a direct grant of send_external_email."
     }
    ],
-   "recommended_action": "Restrict SupportBot's permissions to the minimum required for its case\u2011resolution function. Remove the direct grant to read_customer_pii or isolate it behind a controlled data\u2011access service, and limit or mediate the send_external_email capability with approval workflows and outbound email monitoring. Implement segregation of duties and continuous audit of privileged tool assignments.",
+   "recommended_action": "Revoke the direct read_customer_pii and send_external_email grants from SupportBot; implement least\u2011privilege controls, require mediated approval for external egress, and add monitoring/auditing of any PII access and outbound email activity.",
    "control_mapping": "Data protection \u2014 least privilege and controlled external egress",
    "owasp_mcp": [
     {
@@ -807,7 +714,53 @@
      "url": "https://postmarkapp.com/blog/information-regarding-malicious-postmark-mcp-package",
      "relevance": "Postmark reported that an impersonating npm package silently BCC'd email to an external server. It is an analogous tool-poisoning and supply-chain incident, not evidence that this fleet installed the package."
     }
-   ]
+   ],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-5",
+     "control_name": "Separation of Duties",
+     "relevance": "One agent identity holds both sides of a duty that the control requires to be separated."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.3",
+     "control_name": "Access modification and segregation of duties",
+     "relevance": "Toxic capability combinations in one identity undermine segregation-of-duties objectives."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.15",
+     "control_name": "Access control",
+     "relevance": "Access rules should prevent a single identity from combining conflicting capabilities."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.18",
+     "control_name": "Access rights",
+     "relevance": "Provisioned rights should be reviewed so conflicting entitlements are not co-held."
+    },
+    {
+     "framework": "SOX ITGC",
+     "control_id": "SoD",
+     "control_name": "Segregation of duties over financial processes",
+     "relevance": "An agent that can initiate and approve the same transaction defeats independent review."
+    },
+    {
+     "framework": "EU AI Act (Regulation (EU) 2024/1689)",
+     "control_id": "Art. 14",
+     "control_name": "Human oversight",
+     "relevance": "A toxic combination lets an AI agent complete a consequential action without an independent human checkpoint."
+    }
+   ],
+   "risk_score": 64,
+   "risk_factors": {
+    "base_severity": 40,
+    "blast_radius": 4,
+    "data_sensitivity": 10,
+    "exploitability": 10,
+    "untrusted_exposure": 0
+   }
   },
   {
    "id": "over_privilege:report_bot:unused_granted_tools",
@@ -817,7 +770,7 @@
    "check_type": "over_privilege",
    "severity": "high",
    "title": "Unused standing access: 2 direct grants",
-   "business_risk": "ReportBot holds standing privileges to delete records and export data that are not required for its stated function of reading analytics and generating weekly reports. If the agent or its host environment were compromised, an attacker could leverage the unused delete_records grant to erase operational data or the export_data grant to exfiltrate sensitive analytics, potentially causing data loss, regulatory non\u2011compliance, and disruption of reporting processes.",
+   "business_risk": "ReportBot holds standing privileges to delete records and export data that are never exercised. If the agent were compromised or misused, an attacker could invoke these unused grants to irreversibly remove critical data or exfiltrate sensitive information, exposing the organization to data loss, regulatory non\u2011compliance, and reputational damage.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -835,158 +788,210 @@
      "detail": "ReportBot has a direct grant of export_data."
     }
    ],
-   "recommended_action": "Revoke the unused delete_records and export_data grants from ReportBot, re\u2011align its permissions with the principle of least privilege, and implement periodic access certification to ensure granted rights match actual usage.",
+   "recommended_action": "Revoke the unnecessary delete_records and export_data grants from ReportBot and re\u2011certify its access against the principle of least privilege. Implement periodic review of granted versus used permissions for all agents.",
    "control_mapping": "Least privilege \u2014 access certification using granted versus used access",
    "owasp_mcp": [],
-   "real_world_incident": []
+   "real_world_incident": [],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-6 / AC-6(1)",
+     "control_name": "Least Privilege / Authorize Access to Security Functions",
+     "relevance": "Standing grants with no observed use exceed the minimum access the agent's function requires."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.1",
+     "control_name": "Logical access security",
+     "relevance": "Unused standing entitlements enlarge the logical-access attack surface without business need."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.3",
+     "control_name": "Access modification and segregation of duties",
+     "relevance": "Granted-but-unused access should be removed through the access-modification process."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.8.2",
+     "control_name": "Privileged access rights",
+     "relevance": "High-risk unused entitlements are privileged rights that should be restricted and reviewed."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.18",
+     "control_name": "Access rights",
+     "relevance": "Access rights should be adjusted when observed use does not support the grant."
+    },
+    {
+     "framework": "SOX ITGC",
+     "control_id": "Least privilege",
+     "control_name": "Least-privilege provisioning",
+     "relevance": "Unused financially-relevant entitlements weaken ITGC access assertions."
+    }
+   ],
+   "risk_score": 58,
+   "risk_factors": {
+    "base_severity": 30,
+    "blast_radius": 8,
+    "data_sensitivity": 10,
+    "exploitability": 10,
+    "untrusted_exposure": 0
+   }
   },
   {
-   "id": "escalation:chief_of_staff_bot:delegated_high_risk_payment_approval",
-   "rule_id": "delegated_high_risk_payment_approval",
+   "id": "sod:invoice_bot:finance_create_vendor_approve_payment",
+   "rule_id": "finance_create_vendor_approve_payment",
    "source": "deterministic",
-   "agent_id": "chief_of_staff_bot",
-   "check_type": "escalation",
+   "agent_id": "invoice_bot",
+   "check_type": "sod",
    "severity": "critical",
-   "title": "Delegated payment-approval blast radius",
-   "business_risk": "This agent does not hold payment approval directly, but it can reach an agent that does through delegation. Its effective access therefore includes authority to authorize disbursements, creating a confused-deputy path.",
+   "title": "Critical fraud path: create vendor and approve payment",
+   "business_risk": "InvoiceBot possesses both the create_vendor and approve_payment tool grants, giving a single automated agent the ability to add new vendors and subsequently authorize payments to those vendors. This concentration of authority creates a direct fraud pathway that could be exploited to generate fictitious vendors and approve unauthorized disbursements, potentially resulting in material financial loss and SOX compliance violations across the entire accounts\u2011payable function.",
    "evidence": [
     {
      "entity_type": "agent",
-     "entity_id": "chief_of_staff_bot",
-     "detail": "reaches approve_payment only through delegation to finance_bot"
-    },
-    {
-     "entity_type": "delegation_edge",
-     "entity_id": "chief_of_staff_bot->finance_bot",
-     "detail": "chief_of_staff_bot can delegate to finance_bot."
-    },
-    {
-     "entity_type": "agent",
-     "entity_id": "finance_bot",
-     "detail": "finance_bot is the direct grant holder reached through chief_of_staff_bot -> finance_bot."
+     "entity_id": "invoice_bot",
+     "detail": "holds this effective-access combination"
     },
     {
      "entity_type": "tool",
      "entity_id": "approve_payment",
-     "detail": "ChiefOfStaffBot effectively reaches approve_payment through chief_of_staff_bot -> finance_bot."
-    }
-   ],
-   "recommended_action": "Remove or constrain the delegation link to the payment-approving agent. If delegation is necessary, expose a narrowly scoped workflow action rather than the delegate's general approval authority.",
-   "control_mapping": "Identity governance \u2014 effective access review and least privilege",
-   "owasp_mcp": [],
-   "real_world_incident": []
-  },
-  {
-   "id": "escalation:exec_briefing_bot:delegated_high_risk_payment_approval",
-   "rule_id": "delegated_high_risk_payment_approval",
-   "source": "deterministic",
-   "agent_id": "exec_briefing_bot",
-   "check_type": "escalation",
-   "severity": "critical",
-   "title": "Delegated payment-approval blast radius",
-   "business_risk": "Compromise of ExecBriefingBot (exec_briefing_bot) provides an indirect path to the approve_payment tool via chief_of_staff_bot and finance_bot, enabling unauthorized payment approvals and potential financial loss.",
-   "evidence": [
-    {
-     "entity_type": "agent",
-     "entity_id": "exec_briefing_bot",
-     "detail": "reaches approve_payment only through delegation to finance_bot"
-    },
-    {
-     "entity_type": "delegation_edge",
-     "entity_id": "exec_briefing_bot->chief_of_staff_bot",
-     "detail": "exec_briefing_bot can delegate to chief_of_staff_bot."
-    },
-    {
-     "entity_type": "delegation_edge",
-     "entity_id": "chief_of_staff_bot->finance_bot",
-     "detail": "chief_of_staff_bot can delegate to finance_bot."
-    },
-    {
-     "entity_type": "agent",
-     "entity_id": "finance_bot",
-     "detail": "finance_bot is the direct grant holder reached through exec_briefing_bot -> chief_of_staff_bot -> finance_bot."
+     "detail": "InvoiceBot has a direct grant of approve_payment."
     },
     {
      "entity_type": "tool",
-     "entity_id": "approve_payment",
-     "detail": "ExecBriefingBot effectively reaches approve_payment through exec_briefing_bot -> chief_of_staff_bot -> finance_bot."
+     "entity_id": "create_vendor",
+     "detail": "InvoiceBot has a direct grant of create_vendor."
     }
    ],
-   "recommended_action": "Restrict delegation chains for payment\u2011related tools, enforce least\u2011privilege assignments, and conduct an access\u2011review to ensure only authorized agents hold direct grant to approve_payment. Consider adding approval workflows that require multi\u2011person sign\u2011off before payment execution.",
-   "control_mapping": "Identity governance \u2014 effective access review and least privilege",
+   "recommended_action": "Implement segregation of duties by revoking either the create_vendor or approve_payment grant from InvoiceBot, enforce dual\u2011approval controls for vendor creation and payment authorization, and add continuous monitoring to detect any instance where a single entity performs both actions.",
+   "control_mapping": "SOX ITGC \u2014 segregation of duties (vendor creation versus payment approval)",
    "owasp_mcp": [],
-   "real_world_incident": []
+   "real_world_incident": [],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-5",
+     "control_name": "Separation of Duties",
+     "relevance": "One agent identity holds both sides of a duty that the control requires to be separated."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.3",
+     "control_name": "Access modification and segregation of duties",
+     "relevance": "Toxic capability combinations in one identity undermine segregation-of-duties objectives."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.15",
+     "control_name": "Access control",
+     "relevance": "Access rules should prevent a single identity from combining conflicting capabilities."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.18",
+     "control_name": "Access rights",
+     "relevance": "Provisioned rights should be reviewed so conflicting entitlements are not co-held."
+    },
+    {
+     "framework": "SOX ITGC",
+     "control_id": "SoD",
+     "control_name": "Segregation of duties over financial processes",
+     "relevance": "An agent that can initiate and approve the same transaction defeats independent review."
+    },
+    {
+     "framework": "EU AI Act (Regulation (EU) 2024/1689)",
+     "control_id": "Art. 14",
+     "control_name": "Human oversight",
+     "relevance": "A toxic combination lets an AI agent complete a consequential action without an independent human checkpoint."
+    }
+   ],
+   "risk_score": 54,
+   "risk_factors": {
+    "base_severity": 40,
+    "blast_radius": 4,
+    "data_sensitivity": 0,
+    "exploitability": 10,
+    "untrusted_exposure": 0
+   }
   },
   {
-   "id": "escalation:summary_bot:delegated_high_risk_payment_approval",
-   "rule_id": "delegated_high_risk_payment_approval",
+   "id": "sod:payroll_bot:hr_add_employee_run_payroll",
+   "rule_id": "hr_add_employee_run_payroll",
    "source": "deterministic",
-   "agent_id": "summary_bot",
-   "check_type": "escalation",
+   "agent_id": "payroll_bot",
+   "check_type": "sod",
    "severity": "critical",
-   "title": "Delegated payment-approval blast radius",
-   "business_risk": "Because SummaryBot can delegate to finance_bot, which directly holds the approve_payment grant, any request processed by SummaryBot can be escalated to execute payment approvals. This creates a privilege\u2011escalation blast radius that extends the payment\u2011approval capability beyond its intended owners, exposing the organization to unauthorized disbursements, financial loss, and compliance violations.",
+   "title": "Critical ghost-employee fraud path",
+   "business_risk": "PayrollBot holds direct authority to both add_employee (employee creation) and run_payroll (payroll execution). This conflation of employee setup and payroll processing creates a critical segregation\u2011of\u2011duties violation, enabling a malicious or compromised bot to create ghost employees and issue unauthorized payroll payments, potentially resulting in financial loss, regulatory non\u2011compliance, and reputational harm across the entire payroll function.",
    "evidence": [
     {
      "entity_type": "agent",
-     "entity_id": "summary_bot",
-     "detail": "reaches approve_payment only through delegation to finance_bot"
-    },
-    {
-     "entity_type": "delegation_edge",
-     "entity_id": "summary_bot->finance_bot",
-     "detail": "summary_bot can delegate to finance_bot."
-    },
-    {
-     "entity_type": "agent",
-     "entity_id": "finance_bot",
-     "detail": "finance_bot is the direct grant holder reached through summary_bot -> finance_bot."
+     "entity_id": "payroll_bot",
+     "detail": "holds this effective-access combination"
     },
     {
      "entity_type": "tool",
-     "entity_id": "approve_payment",
-     "detail": "SummaryBot effectively reaches approve_payment through summary_bot -> finance_bot."
+     "entity_id": "add_employee",
+     "detail": "PayrollBot has a direct grant of add_employee."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "run_payroll",
+     "detail": "PayrollBot has a direct grant of run_payroll."
     }
    ],
-   "recommended_action": "Restrict or remove the delegation edge from SummaryBot to finance_bot, enforce least\u2011privilege principles for both agents, and implement an access\u2011review process that validates any delegation paths to high\u2011risk tools such as approve_payment. Add monitoring and alerts for any payment\u2011approval actions initiated via delegated agents.",
-   "control_mapping": "Identity governance \u2014 effective access review and least privilege",
-   "owasp_mcp": [
-    {
-     "id": "MCP02:2025",
-     "title": "Privilege Escalation via Scope Creep",
-     "url": "https://owasp.org/www-project-mcp-top-10/2025/MCP02-2025%E2%80%93Privilege-Escalation-via-Scope-Creep",
-     "relevance": "Delegated authority can turn a narrowly scoped agent into a higher-impact actor through effective access."
-    }
-   ],
-   "real_world_incident": [
-    {
-     "title": "Invariant Labs GitHub MCP toxic agent flow",
-     "date": "26 May 2025",
-     "url": "https://invariantlabs.ai/blog/mcp-github-vulnerability",
-     "relevance": "Invariant demonstrated an untrusted GitHub issue coercing an MCP-connected agent to move private repository data into a public pull request. It illustrates how composed authority paths can exceed an agent's apparent role."
-    }
-   ]
-  },
-  {
-   "id": "orphan:legacy_bot:missing_owner",
-   "rule_id": "missing_owner",
-   "source": "deterministic",
-   "agent_id": "legacy_bot",
-   "check_type": "orphan",
-   "severity": "high",
-   "title": "Ownerless agent has no accountable reviewer",
-   "business_risk": "The LegacyBot agent operates without an assigned owner, meaning no accountable reviewer can certify its access or monitor its activity. Any actions the agent takes against the retired product archive\u2014such as data retrieval, modification, or deletion\u2014occur without oversight, exposing the organization to unauthorized data exposure, integrity loss, and compliance violations.",
-   "evidence": [
-    {
-     "entity_type": "agent",
-     "entity_id": "legacy_bot",
-     "detail": "owner is null in the fleet inventory"
-    }
-   ],
-   "recommended_action": "Assign a qualified owner to LegacyBot and enroll the agent in the access certification process to ensure accountable review and ongoing monitoring of its permissions and activities.",
-   "control_mapping": "Accountability \u2014 named owner required for agent access certification",
+   "recommended_action": "Re\u2011engineer the permission model to enforce segregation of duties: remove the direct add_employee grant from PayrollBot, require an independent approval workflow for employee creation, and limit payroll execution to a separate, controlled role. Implement least\u2011privilege access, periodic access reviews, and monitoring of employee\u2011creation and payroll\u2011run activities.",
+   "control_mapping": "SOX ITGC \u2014 segregation of duties (employee setup versus payroll execution)",
    "owasp_mcp": [],
-   "real_world_incident": []
+   "real_world_incident": [],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-5",
+     "control_name": "Separation of Duties",
+     "relevance": "One agent identity holds both sides of a duty that the control requires to be separated."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.3",
+     "control_name": "Access modification and segregation of duties",
+     "relevance": "Toxic capability combinations in one identity undermine segregation-of-duties objectives."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.15",
+     "control_name": "Access control",
+     "relevance": "Access rules should prevent a single identity from combining conflicting capabilities."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.18",
+     "control_name": "Access rights",
+     "relevance": "Provisioned rights should be reviewed so conflicting entitlements are not co-held."
+    },
+    {
+     "framework": "SOX ITGC",
+     "control_id": "SoD",
+     "control_name": "Segregation of duties over financial processes",
+     "relevance": "An agent that can initiate and approve the same transaction defeats independent review."
+    },
+    {
+     "framework": "EU AI Act (Regulation (EU) 2024/1689)",
+     "control_id": "Art. 14",
+     "control_name": "Human oversight",
+     "relevance": "A toxic combination lets an AI agent complete a consequential action without an independent human checkpoint."
+    }
+   ],
+   "risk_score": 54,
+   "risk_factors": {
+    "base_severity": 40,
+    "blast_radius": 4,
+    "data_sensitivity": 0,
+    "exploitability": 10,
+    "untrusted_exposure": 0
+   }
   },
   {
    "id": "sod:sales_bot:llm_toxic_read_crm_send_external_email",
@@ -996,7 +1001,7 @@
    "check_type": "sod",
    "severity": "high",
    "title": "AI-generalized toxic capability combination: Read CRM account context + Send email outside the company",
-   "business_risk": "The SalesBot agent can read CRM account context and directly send emails to external recipients. This combination enables the potential exfiltration of customer data and unauthorized personalized outreach, creating a risk of data leakage, regulatory non\u2011compliance, and reputational harm if CRM information is disclosed outside the organization.",
+   "business_risk": "The SalesBot agent can both read CRM account context and send email outside the company, creating a direct path to expose customer information to external recipients. This combination can lead to unauthorized data disclosure, regulatory non\u2011compliance, reputational damage, and potential financial loss.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -1014,7 +1019,7 @@
      "detail": "SalesBot has a direct grant of send_external_email."
     }
    ],
-   "recommended_action": "Implement segregation of duties by removing the direct grant for external email from agents with CRM read access, require an approval workflow for outbound communications, and monitor outbound email logs for anomalous activity.",
+   "recommended_action": "Separate the read_crm and send_external_email permissions, enforce a dual\u2011approval workflow for any external email that includes CRM data, and implement continuous monitoring and audit of combined usage.",
    "control_mapping": "Identity governance \u2014 GPT-identified segregation-of-duties candidate",
    "owasp_mcp": [
     {
@@ -1043,7 +1048,414 @@
      "url": "https://postmarkapp.com/blog/information-regarding-malicious-postmark-mcp-package",
      "relevance": "Postmark reported that an impersonating npm package silently BCC'd email to an external server. It is an analogous tool-poisoning and supply-chain incident, not evidence that this fleet installed the package."
     }
-   ]
+   ],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-5",
+     "control_name": "Separation of Duties",
+     "relevance": "One agent identity holds both sides of a duty that the control requires to be separated."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.3",
+     "control_name": "Access modification and segregation of duties",
+     "relevance": "Toxic capability combinations in one identity undermine segregation-of-duties objectives."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.15",
+     "control_name": "Access control",
+     "relevance": "Access rules should prevent a single identity from combining conflicting capabilities."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.18",
+     "control_name": "Access rights",
+     "relevance": "Provisioned rights should be reviewed so conflicting entitlements are not co-held."
+    },
+    {
+     "framework": "SOX ITGC",
+     "control_id": "SoD",
+     "control_name": "Segregation of duties over financial processes",
+     "relevance": "An agent that can initiate and approve the same transaction defeats independent review."
+    },
+    {
+     "framework": "EU AI Act (Regulation (EU) 2024/1689)",
+     "control_id": "Art. 14",
+     "control_name": "Human oversight",
+     "relevance": "A toxic combination lets an AI agent complete a consequential action without an independent human checkpoint."
+    }
+   ],
+   "risk_score": 54,
+   "risk_factors": {
+    "base_severity": 30,
+    "blast_radius": 4,
+    "data_sensitivity": 10,
+    "exploitability": 10,
+    "untrusted_exposure": 0
+   }
+  },
+  {
+   "id": "escalation:chief_of_staff_bot:delegated_high_risk_payment_approval",
+   "rule_id": "delegated_high_risk_payment_approval",
+   "source": "deterministic",
+   "agent_id": "chief_of_staff_bot",
+   "check_type": "escalation",
+   "severity": "critical",
+   "title": "Delegated payment-approval blast radius",
+   "business_risk": "Through the delegation edge, ChiefOfStaffBot can reach the finance_bot, which directly holds the approve_payment tool. Consequently, any user or process that can invoke ChiefOfStaffBot inherits the ability to trigger payment approvals via finance_bot. The practical blast radius therefore extends to all payment transactions that finance_bot is authorized to approve, creating a critical risk of unauthorized or fraudulent payments if the delegation is not tightly controlled.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "chief_of_staff_bot",
+     "detail": "reaches approve_payment only through delegation to finance_bot"
+    },
+    {
+     "entity_type": "delegation_edge",
+     "entity_id": "chief_of_staff_bot->finance_bot",
+     "detail": "chief_of_staff_bot can delegate to finance_bot."
+    },
+    {
+     "entity_type": "agent",
+     "entity_id": "finance_bot",
+     "detail": "finance_bot is the direct grant holder reached through chief_of_staff_bot -> finance_bot."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "approve_payment",
+     "detail": "ChiefOfStaffBot effectively reaches approve_payment through chief_of_staff_bot -> finance_bot."
+    }
+   ],
+   "recommended_action": "Conduct an immediate access review of the delegation relationship between ChiefOfStaffBot and finance_bot. Restrict delegation to only verified, least\u2011privilege identities, enforce multi\u2011factor approval for payment actions, and implement monitoring/auditing of all approve_payment invocations originating from ChiefOfStaffBot.",
+   "control_mapping": "Identity governance \u2014 effective access review and least privilege",
+   "owasp_mcp": [],
+   "real_world_incident": [],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-6",
+     "control_name": "Least Privilege",
+     "relevance": "Delegation extends the agent's effective privilege beyond its direct provisioning."
+    },
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-5",
+     "control_name": "Separation of Duties",
+     "relevance": "Authority reachable through delegation recombines duties the direct grants kept separate."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.1",
+     "control_name": "Logical access security",
+     "relevance": "Effective access through delegation is logical access and must be evaluated as such."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.8.2",
+     "control_name": "Privileged access rights",
+     "relevance": "A privileged capability reachable only through delegation is still a privileged right of that identity."
+    }
+   ],
+   "risk_score": 49,
+   "risk_factors": {
+    "base_severity": 40,
+    "blast_radius": 4,
+    "data_sensitivity": 0,
+    "exploitability": 5,
+    "untrusted_exposure": 0
+   }
+  },
+  {
+   "id": "escalation:exec_briefing_bot:delegated_high_risk_payment_approval",
+   "rule_id": "delegated_high_risk_payment_approval",
+   "source": "deterministic",
+   "agent_id": "exec_briefing_bot",
+   "check_type": "escalation",
+   "severity": "critical",
+   "title": "Delegated payment-approval blast radius",
+   "business_risk": "Compromise of ExecBriefingBot grants indirect access to the approve_payment tool via the delegation chain (ExecBriefingBot \u2192 chief_of_staff_bot \u2192 finance_bot). An attacker who gains control of ExecBriefingBot could approve payments without direct authorization, exposing the organization to unauthorized disbursements and potential financial loss.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "exec_briefing_bot",
+     "detail": "reaches approve_payment only through delegation to finance_bot"
+    },
+    {
+     "entity_type": "delegation_edge",
+     "entity_id": "exec_briefing_bot->chief_of_staff_bot",
+     "detail": "exec_briefing_bot can delegate to chief_of_staff_bot."
+    },
+    {
+     "entity_type": "delegation_edge",
+     "entity_id": "chief_of_staff_bot->finance_bot",
+     "detail": "chief_of_staff_bot can delegate to finance_bot."
+    },
+    {
+     "entity_type": "agent",
+     "entity_id": "finance_bot",
+     "detail": "finance_bot is the direct grant holder reached through exec_briefing_bot -> chief_of_staff_bot -> finance_bot."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "approve_payment",
+     "detail": "ExecBriefingBot effectively reaches approve_payment through exec_briefing_bot -> chief_of_staff_bot -> finance_bot."
+    }
+   ],
+   "recommended_action": "Restrict delegation paths so that ExecBriefingBot cannot reach payment\u2011approval capabilities, enforce least\u2011privilege principles on delegation edges, conduct an immediate access review of all delegated relationships, and implement monitoring/alerting for any use of approve_payment originating from indirect agents.",
+   "control_mapping": "Identity governance \u2014 effective access review and least privilege",
+   "owasp_mcp": [],
+   "real_world_incident": [],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-6",
+     "control_name": "Least Privilege",
+     "relevance": "Delegation extends the agent's effective privilege beyond its direct provisioning."
+    },
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-5",
+     "control_name": "Separation of Duties",
+     "relevance": "Authority reachable through delegation recombines duties the direct grants kept separate."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.1",
+     "control_name": "Logical access security",
+     "relevance": "Effective access through delegation is logical access and must be evaluated as such."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.8.2",
+     "control_name": "Privileged access rights",
+     "relevance": "A privileged capability reachable only through delegation is still a privileged right of that identity."
+    }
+   ],
+   "risk_score": 49,
+   "risk_factors": {
+    "base_severity": 40,
+    "blast_radius": 4,
+    "data_sensitivity": 0,
+    "exploitability": 5,
+    "untrusted_exposure": 0
+   }
+  },
+  {
+   "id": "escalation:summary_bot:delegated_high_risk_payment_approval",
+   "rule_id": "delegated_high_risk_payment_approval",
+   "source": "deterministic",
+   "agent_id": "summary_bot",
+   "check_type": "escalation",
+   "severity": "critical",
+   "title": "Delegated payment-approval blast radius",
+   "business_risk": "This agent does not hold payment approval directly, but it can reach an agent that does through delegation. Its effective access therefore includes authority to authorize disbursements, creating a confused-deputy path.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "summary_bot",
+     "detail": "reaches approve_payment only through delegation to finance_bot"
+    },
+    {
+     "entity_type": "delegation_edge",
+     "entity_id": "summary_bot->finance_bot",
+     "detail": "summary_bot can delegate to finance_bot."
+    },
+    {
+     "entity_type": "agent",
+     "entity_id": "finance_bot",
+     "detail": "finance_bot is the direct grant holder reached through summary_bot -> finance_bot."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "approve_payment",
+     "detail": "SummaryBot effectively reaches approve_payment through summary_bot -> finance_bot."
+    }
+   ],
+   "recommended_action": "Remove or constrain the delegation link to the payment-approving agent. If delegation is necessary, expose a narrowly scoped workflow action rather than the delegate's general approval authority.",
+   "control_mapping": "Identity governance \u2014 effective access review and least privilege",
+   "owasp_mcp": [
+    {
+     "id": "MCP02:2025",
+     "title": "Privilege Escalation via Scope Creep",
+     "url": "https://owasp.org/www-project-mcp-top-10/2025/MCP02-2025%E2%80%93Privilege-Escalation-via-Scope-Creep",
+     "relevance": "Delegated authority can turn a narrowly scoped agent into a higher-impact actor through effective access."
+    }
+   ],
+   "real_world_incident": [
+    {
+     "title": "Invariant Labs GitHub MCP toxic agent flow",
+     "date": "26 May 2025",
+     "url": "https://invariantlabs.ai/blog/mcp-github-vulnerability",
+     "relevance": "Invariant demonstrated an untrusted GitHub issue coercing an MCP-connected agent to move private repository data into a public pull request. It illustrates how composed authority paths can exceed an agent's apparent role."
+    }
+   ],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-6",
+     "control_name": "Least Privilege",
+     "relevance": "Delegation extends the agent's effective privilege beyond its direct provisioning."
+    },
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-5",
+     "control_name": "Separation of Duties",
+     "relevance": "Authority reachable through delegation recombines duties the direct grants kept separate."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.1",
+     "control_name": "Logical access security",
+     "relevance": "Effective access through delegation is logical access and must be evaluated as such."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.8.2",
+     "control_name": "Privileged access rights",
+     "relevance": "A privileged capability reachable only through delegation is still a privileged right of that identity."
+    }
+   ],
+   "risk_score": 49,
+   "risk_factors": {
+    "base_severity": 40,
+    "blast_radius": 4,
+    "data_sensitivity": 0,
+    "exploitability": 5,
+    "untrusted_exposure": 0
+   }
+  },
+  {
+   "id": "sod:access_bot:it_request_access_grant_access",
+   "rule_id": "it_request_access_grant_access",
+   "source": "deterministic",
+   "agent_id": "access_bot",
+   "check_type": "sod",
+   "severity": "high",
+   "title": "Self-granting privilege path",
+   "business_risk": "AccessBot possesses both the request_access and grant_access capabilities, creating a self\u2011granting privilege path. This enables the agent to request and immediately approve access to applications without independent review, allowing unauthorized privilege escalation across the organization\u2019s systems. The blast radius includes potential exposure of sensitive data, violation of compliance requirements, and the ability for an attacker who compromises the bot to obtain unrestricted access to any application the bot can request.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "access_bot",
+     "detail": "holds this effective-access combination"
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "grant_access",
+     "detail": "AccessBot has a direct grant of grant_access."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "request_access",
+     "detail": "AccessBot has a direct grant of request_access."
+    }
+   ],
+   "recommended_action": "Segregate duties by removing the direct grant of the grant_access tool from AccessBot. Implement an approval workflow that requires a separate, privileged role to approve access requests. Apply least\u2011privilege principles to the agent, enforce monitoring of any grant actions, and conduct periodic reviews of agent permissions.",
+   "control_mapping": "Identity governance \u2014 segregation of duties (access request versus access grant)",
+   "owasp_mcp": [],
+   "real_world_incident": [],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-5",
+     "control_name": "Separation of Duties",
+     "relevance": "One agent identity holds both sides of a duty that the control requires to be separated."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.3",
+     "control_name": "Access modification and segregation of duties",
+     "relevance": "Toxic capability combinations in one identity undermine segregation-of-duties objectives."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.15",
+     "control_name": "Access control",
+     "relevance": "Access rules should prevent a single identity from combining conflicting capabilities."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.18",
+     "control_name": "Access rights",
+     "relevance": "Provisioned rights should be reviewed so conflicting entitlements are not co-held."
+    },
+    {
+     "framework": "SOX ITGC",
+     "control_id": "SoD",
+     "control_name": "Segregation of duties over financial processes",
+     "relevance": "An agent that can initiate and approve the same transaction defeats independent review."
+    },
+    {
+     "framework": "EU AI Act (Regulation (EU) 2024/1689)",
+     "control_id": "Art. 14",
+     "control_name": "Human oversight",
+     "relevance": "A toxic combination lets an AI agent complete a consequential action without an independent human checkpoint."
+    }
+   ],
+   "risk_score": 44,
+   "risk_factors": {
+    "base_severity": 30,
+    "blast_radius": 4,
+    "data_sensitivity": 0,
+    "exploitability": 10,
+    "untrusted_exposure": 0
+   }
+  },
+  {
+   "id": "orphan:legacy_bot:missing_owner",
+   "rule_id": "missing_owner",
+   "source": "deterministic",
+   "agent_id": "legacy_bot",
+   "check_type": "orphan",
+   "severity": "high",
+   "title": "Ownerless agent has no accountable reviewer",
+   "business_risk": "The LegacyBot agent lacks an assigned owner, so no individual is accountable for its access rights or activity. This creates a compliance gap (missing reviewer for access certification) and increases the risk of undetected misuse or unauthorized data exposure through the agent's operations.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "legacy_bot",
+     "detail": "owner is null in the fleet inventory"
+    }
+   ],
+   "recommended_action": "Assign a named owner in the fleet inventory, update the agent's governance record, and include the agent in the regular access certification process to ensure accountability.",
+   "control_mapping": "Accountability \u2014 named owner required for agent access certification",
+   "owasp_mcp": [],
+   "real_world_incident": [],
+   "control_frameworks": [
+    {
+     "framework": "NIST SP 800-53 Rev. 5",
+     "control_id": "AC-2",
+     "control_name": "Account Management",
+     "relevance": "An agent identity with no accountable owner cannot be certified, reviewed, or deprovisioned on schedule."
+    },
+    {
+     "framework": "SOC 2 Trust Services Criteria (2017)",
+     "control_id": "CC6.2",
+     "control_name": "User registration and authorization",
+     "relevance": "Identities must be traceable to an accountable party throughout their lifecycle."
+    },
+    {
+     "framework": "ISO/IEC 27001:2022",
+     "control_id": "A.5.16",
+     "control_name": "Identity management",
+     "relevance": "The full life cycle of an identity \u2014 including this non-human one \u2014 requires a responsible owner."
+    },
+    {
+     "framework": "SOX ITGC",
+     "control_id": "Access accountability",
+     "control_name": "Accountable ownership of access",
+     "relevance": "Ownerless identities break the accountability chain ITGC access reviews depend on."
+    }
+   ],
+   "risk_score": 30,
+   "risk_factors": {
+    "base_severity": 30,
+    "blast_radius": 0,
+    "data_sensitivity": 0,
+    "exploitability": 0,
+    "untrusted_exposure": 0
+   }
   }
  ],
  "direct_access": {
@@ -1628,7 +2040,8 @@
     ]
    },
    "needed_capabilities": [
-    "executes read-only queries on analytics database"
+    "executes read-only queries on analytics database",
+    "exports analytics data to a file"
    ],
    "granted_vs_needed_gap": [
     "read_analytics"
@@ -1663,12 +2076,13 @@
     ]
    },
    "needed_capabilities": [
-    "searches and reads approved internal knowledge articles",
+    "creates concise summary of supplied document",
     "sends reminder messages through the internal messaging system to employees"
    ],
    "granted_vs_needed_gap": [
     "approve_payment",
-    "read_calendar"
+    "read_calendar",
+    "read_knowledge_base"
    ]
   },
   "compliance_bot": {
@@ -1696,7 +2110,7 @@
    },
    "needed_capabilities": [
     "reads published company policy documents",
-    "opens audit follow\u2011up ticket for audit reviewer"
+    "opens audit follow\u2011up tickets for reviewers"
    ],
    "granted_vs_needed_gap": []
   },
@@ -1724,7 +2138,7 @@
     ]
    },
    "needed_capabilities": [
-    "reads approved contract templates and prior agreements",
+    "retrieves approved contract templates and prior agreements from contract repository",
     "drafts contract language for legal review"
    ],
    "granted_vs_needed_gap": []
@@ -1782,8 +2196,8 @@
     ]
    },
    "needed_capabilities": [
-    "reads approved analytics extracts for review",
-    "validates analytics extract against quality rules"
+    "retrieves approved analytics extract for review",
+    "checks analytics extract against data quality rules"
    ],
    "granted_vs_needed_gap": []
   },
@@ -1812,7 +2226,7 @@
    },
    "needed_capabilities": [
     "reads source code files and issue context from the engineering repository",
-    "opens engineering work item for maintainer"
+    "opens engineering work items for maintainers"
    ],
    "granted_vs_needed_gap": []
   },
@@ -1846,7 +2260,7 @@
    },
    "needed_capabilities": [
     "searches and reads approved internal knowledge articles",
-    "sends reminder messages through the internal messaging system to employees"
+    "creates concise summary of supplied document"
    ],
    "granted_vs_needed_gap": [
     "approve_payment",
@@ -1900,7 +2314,7 @@
     ]
    },
    "needed_capabilities": [
-    "authorizes queued payment for release"
+    "authorizes queued payments for release"
    ],
    "granted_vs_needed_gap": []
   },
@@ -1958,7 +2372,7 @@
    },
    "needed_capabilities": [
     "adds supplier or payee to vendor master",
-    "authorizes queued payment for release"
+    "authorizes queued payments for release"
    ],
    "granted_vs_needed_gap": []
   },
@@ -2002,7 +2416,7 @@
     ]
    },
    "needed_capabilities": [
-    "reads documents from retired product archive"
+    "retrieves documents from retired product archive"
    ],
    "granted_vs_needed_gap": []
   },
@@ -2036,7 +2450,7 @@
     ]
    },
    "needed_capabilities": [
-    "searches publicly available web pages for information",
+    "searches public web pages for information",
     "creates concise summary of supplied document"
    ],
    "granted_vs_needed_gap": [
@@ -2068,7 +2482,7 @@
    },
    "needed_capabilities": [
     "reads current service health and performance metrics from the monitoring system",
-    "creates incident tickets in incident management system for the on-call team"
+    "opens incident tickets for the on\u2011call team"
    ],
    "granted_vs_needed_gap": []
   },
@@ -2125,7 +2539,7 @@
     ]
    },
    "needed_capabilities": [
-    "creates employee record in people system",
+    "creates employee records in the HR system",
     "starts payroll calculation and payment run for employees"
    ],
    "granted_vs_needed_gap": []
@@ -2154,8 +2568,8 @@
     ]
    },
    "needed_capabilities": [
-    "reads approved contract templates and prior agreements",
-    "opens audit follow\u2011up ticket for audit reviewer"
+    "retrieves approved contract templates and prior agreements from contract repository",
+    "opens audit follow\u2011up tickets for reviewers"
    ],
    "granted_vs_needed_gap": []
   },
@@ -2183,8 +2597,8 @@
     ]
    },
    "needed_capabilities": [
-    "reads internal team calendar availability",
-    "creates internal meeting event on selected calendars"
+    "retrieves availability from internal team calendars",
+    "creates internal meeting events on selected calendars"
    ],
    "granted_vs_needed_gap": []
   },
@@ -2219,12 +2633,11 @@
     ]
    },
    "needed_capabilities": [
-    "reads approved analytics extracts for review",
-    "exports analytics data to files"
+    "executes read-only queries on analytics database",
+    "exports analytics data to a file"
    ],
    "granted_vs_needed_gap": [
-    "delete_records",
-    "read_db"
+    "delete_records"
    ]
   },
   "research_bot": {
@@ -2251,7 +2664,7 @@
     ]
    },
    "needed_capabilities": [
-    "searches publicly available web pages for information",
+    "searches public web pages for information",
     "creates concise summary of supplied document"
    ],
    "granted_vs_needed_gap": []
@@ -2310,7 +2723,6 @@
    },
    "needed_capabilities": [
     "reads sales account notes and opportunity context from CRM",
-    "drafts customer email for sales representative review",
     "sends email messages to external recipients"
    ],
    "granted_vs_needed_gap": []
@@ -2339,8 +2751,8 @@
     ]
    },
    "needed_capabilities": [
-    "reads internal team calendar availability",
-    "creates internal meeting event on selected calendars"
+    "retrieves availability from internal team calendars",
+    "creates internal meeting events on selected calendars"
    ],
    "granted_vs_needed_gap": []
   },
@@ -2376,7 +2788,7 @@
    "needed_capabilities": [
     "reads current service health and performance metrics from the monitoring system",
     "reads published company policy documents",
-    "creates incident tickets in incident management system for the on\u2011call team"
+    "opens incident tickets for the on\u2011call team"
    ],
    "granted_vs_needed_gap": []
   },
@@ -2463,23 +2875,24 @@
   }
  },
  "tool_capabilities": {
-  "add_employee": "creates employee record in people system",
-  "approve_payment": "authorizes queued payment for release",
-  "create_audit_ticket": "opens audit follow\u2011up ticket for audit reviewer",
-  "create_calendar_event": "creates internal meeting event on selected calendars",
-  "create_issue": "opens engineering work item for maintainer",
+  "add_employee": "creates employee records in the HR system",
+  "approve_payment": "authorizes queued payments for release",
+  "create_audit_ticket": "opens audit follow\u2011up tickets for reviewers",
+  "create_calendar_event": "creates internal meeting events on selected calendars",
+  "create_incident_ticket": "opens incident tickets for the on\u2011call team",
+  "create_issue": "opens engineering work items for maintainers",
   "create_onboarding_checklist": "creates onboarding checklist for new hire",
   "create_travel_request": "creates travel request for manager review",
   "create_vendor": "adds supplier or payee to vendor master",
   "delete_records": "deletes selected records from analytics database",
   "draft_contract": "drafts contract language for legal review",
   "draft_customer_email": "drafts customer email for sales representative review",
-  "export_data": "exports analytics data to files",
-  "grant_access": "assigns application roles to employee accounts",
-  "read_analytics": "reads approved analytics extracts for review",
-  "read_archive": "reads documents from retired product archive",
-  "read_calendar": "reads internal team calendar availability",
-  "read_contract_repository": "reads approved contract templates and prior agreements",
+  "export_data": "exports analytics data to a file",
+  "grant_access": "assigns requested application role to an employee",
+  "read_analytics": "retrieves approved analytics extract for review",
+  "read_archive": "retrieves documents from retired product archive",
+  "read_calendar": "retrieves availability from internal team calendars",
+  "read_contract_repository": "retrieves approved contract templates and prior agreements from contract repository",
   "read_crm": "reads sales account notes and opportunity context from CRM",
   "read_customer_pii": "reads customer contact and account information for support cases",
   "read_db": "executes read-only queries on analytics database",
@@ -2494,27 +2907,27 @@
   "send_internal_message": "sends reminder messages through the internal messaging system to employees",
   "summarize_document": "creates concise summary of supplied document",
   "update_inventory": "updates warehouse stock count records",
-  "validate_data": "validates analytics extract against quality rules",
-  "web_search": "searches publicly available web pages for information",
-  "create_incident_ticket": "creates incident tickets in incident management system for the on-call team"
+  "validate_data": "checks analytics extract against data quality rules",
+  "web_search": "searches public web pages for information"
  },
  "needed_capabilities": {
   "access_bot": [
    "submits an application access request for an employee"
   ],
   "bi_bot": [
-   "executes read-only queries on analytics database"
+   "executes read-only queries on analytics database",
+   "exports analytics data to a file"
   ],
   "chief_of_staff_bot": [
-   "searches and reads approved internal knowledge articles",
+   "creates concise summary of supplied document",
    "sends reminder messages through the internal messaging system to employees"
   ],
   "compliance_bot": [
    "reads published company policy documents",
-   "opens audit follow\u2011up ticket for audit reviewer"
+   "opens audit follow\u2011up tickets for reviewers"
   ],
   "contract_bot": [
-   "reads approved contract templates and prior agreements",
+   "retrieves approved contract templates and prior agreements from contract repository",
    "drafts contract language for legal review"
   ],
   "customer_success_bot": [
@@ -2522,23 +2935,23 @@
    "sends reminder messages through the internal messaging system to employees"
   ],
   "data_quality_bot": [
-   "reads approved analytics extracts for review",
-   "validates analytics extract against quality rules"
+   "retrieves approved analytics extract for review",
+   "checks analytics extract against data quality rules"
   ],
   "engineering_bot": [
    "reads source code files and issue context from the engineering repository",
-   "opens engineering work item for maintainer"
+   "opens engineering work items for maintainers"
   ],
   "exec_briefing_bot": [
    "searches and reads approved internal knowledge articles",
-   "sends reminder messages through the internal messaging system to employees"
+   "creates concise summary of supplied document"
   ],
   "facilities_bot": [
    "creates travel request for manager review",
    "reads published company policy documents"
   ],
   "finance_bot": [
-   "authorizes queued payment for release"
+   "authorizes queued payments for release"
   ],
   "inventory_bot": [
    "reads current warehouse inventory and stock counts",
@@ -2546,44 +2959,44 @@
   ],
   "invoice_bot": [
    "adds supplier or payee to vendor master",
-   "authorizes queued payment for release"
+   "authorizes queued payments for release"
   ],
   "knowledge_bot": [
    "searches and reads approved internal knowledge articles"
   ],
   "legacy_bot": [
-   "reads documents from retired product archive"
+   "retrieves documents from retired product archive"
   ],
   "marketing_bot": [
-   "searches publicly available web pages for information",
+   "searches public web pages for information",
    "creates concise summary of supplied document"
   ],
   "monitoring_bot": [
    "reads current service health and performance metrics from the monitoring system",
-   "creates incident tickets in incident management system for the on-call team"
+   "opens incident tickets for the on\u2011call team"
   ],
   "onboarding_bot": [
    "creates onboarding checklist for new hire",
    "sends reminder messages through the internal messaging system to employees"
   ],
   "payroll_bot": [
-   "creates employee record in people system",
+   "creates employee records in the HR system",
    "starts payroll calculation and payment run for employees"
   ],
   "procurement_bot": [
-   "reads approved contract templates and prior agreements",
-   "opens audit follow\u2011up ticket for audit reviewer"
+   "retrieves approved contract templates and prior agreements from contract repository",
+   "opens audit follow\u2011up tickets for reviewers"
   ],
   "recruiting_bot": [
-   "reads internal team calendar availability",
-   "creates internal meeting event on selected calendars"
+   "retrieves availability from internal team calendars",
+   "creates internal meeting events on selected calendars"
   ],
   "report_bot": [
-   "reads approved analytics extracts for review",
-   "exports analytics data to files"
+   "executes read-only queries on analytics database",
+   "exports analytics data to a file"
   ],
   "research_bot": [
-   "searches publicly available web pages for information",
+   "searches public web pages for information",
    "creates concise summary of supplied document"
   ],
   "sales_assist_bot": [
@@ -2592,17 +3005,16 @@
   ],
   "sales_bot": [
    "reads sales account notes and opportunity context from CRM",
-   "drafts customer email for sales representative review",
    "sends email messages to external recipients"
   ],
   "scheduler_bot": [
-   "reads internal team calendar availability",
-   "creates internal meeting event on selected calendars"
+   "retrieves availability from internal team calendars",
+   "creates internal meeting events on selected calendars"
   ],
   "secops_bot": [
    "reads current service health and performance metrics from the monitoring system",
    "reads published company policy documents",
-   "creates incident tickets in incident management system for the on\u2011call team"
+   "opens incident tickets for the on\u2011call team"
   ],
   "summary_bot": [
    "searches and reads approved internal knowledge articles",
@@ -2625,7 +3037,8 @@
   ],
   "chief_of_staff_bot": [
    "approve_payment",
-   "read_calendar"
+   "read_calendar",
+   "read_knowledge_base"
   ],
   "compliance_bot": [],
   "contract_bot": [],
@@ -2651,8 +3064,7 @@
   "procurement_bot": [],
   "recruiting_bot": [],
   "report_bot": [
-   "delete_records",
-   "read_db"
+   "delete_records"
   ],
   "research_bot": [],
   "sales_assist_bot": [],
@@ -2689,9 +3101,7 @@
      "total_tools": 34,
      "unclassified_tool_ids": [],
      "failed_batch_tool_ids": [],
-     "individual_retry_tool_ids": [
-      "create_incident_ticket"
-     ]
+     "individual_retry_tool_ids": []
     },
     "finding_narratives": {
      "status": "ok",
@@ -2711,5 +3121,5 @@
   }
  },
  "analysis_version": "0.1",
- "generated_at": "2026-07-21T21:50:03.026673Z"
+ "generated_at": "2026-07-21T22:25:33.586460Z"
 }
