@@ -1,5 +1,9 @@
 # Steward
 
+[![Steward trust gate](https://github.com/vrajjshah/steward/actions/workflows/eval.yml/badge.svg)](https://github.com/vrajjshah/steward/actions/workflows/eval.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)
+
 **See what your AI agents can actually do — including the dangerous paths hiding in their permissions.**
 
 Steward is a small, open-source agent safety and blast-radius analyzer. Point it at an agent fleet's grants, tool use, ownership, and delegation topology. It computes each agent's **effective access**, detects dangerous combinations, and emits only findings that cite the real agent, tool, and delegation entities that caused them.
@@ -137,18 +141,27 @@ The Supabase source describes a scenario and mitigation work rather than a confi
 
 ## How it works
 
-```text
-fleet / MCP config
-        │
-        ▼
-typed inventory ──► effective-access graph ──► Tier 1: deterministic checks
-        │                     │                         │
-        │                     └─ direct + delegated      ├─ source: deterministic
-        │                                               │
-        └─ redacted metadata ─► Tier 2: runtime model (optional, when configured)
-                                      │                 │
-                                      └─ proposals + context ─► citation gate ─► source-labeled report
+> **📐 Full architecture, diagrams, and design decisions:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+
+```mermaid
+flowchart TB
+    FLEET["Fleet JSON"] --> LOAD
+    MCP["MCP config"] -->|"strip env / secrets"| ADAPT["MCP adapter"] --> LOAD["Typed models"]
+    LOAD --> GRAPH["Effective-access graph<br/>direct ∪ delegated"]
+    GRAPH --> DET["Tier 1 · Deterministic checks<br/>SoD · over-privilege · escalation · orphan"]
+    GRAPH -.->|"redacted metadata"| LLM["Tier 2 · Model generalization<br/>gpt-oss-120b · optional"]
+    DET --> CITE["Citation verifier<br/>every finding cites real entities"]
+    LLM -.->|"candidate combos"| CITE
+    CITE --> FIND["Findings · source-labeled · cited"]
+    FIND --> OUT["Dashboard · risk cards · reports"]
+    FIND --> POL["Least-privilege policy"] --> ENF["MCP enforcement gate"]
+    FIND --> LED[("Signed audit ledger")]
+    ENF --> LED
 ```
+
+The critical property: **the model feeds the citation verifier, not the output.**
+Nothing a model proposes reaches a report, the dashboard, or the ledger until
+Steward has re-derived and checked its evidence against the loaded graph.
 
 ### Tier 1 — deterministic safety floor
 
@@ -286,6 +299,7 @@ steward/    graph, deterministic checks, adapters, Bedrock wrapper, ledger, poli
 examples/   credential-free MCP import and bundled red-team exfiltration scenario
 evals/      golden-set precision/recall and citation-validity gate
 tests/      focused safety and adapter tests
+docs/       architecture and design documentation
 .github/    CI workflow
 ```
 
@@ -310,6 +324,13 @@ federation, runtime payload inspection, or production authorization claims.
 Steward gives a reviewer a trustworthy starting point: which capabilities
 exist, how delegation expands them, how a least-privilege policy would close a
 cited route, and a signed record proving the demonstration decision occurred.
+
+## Documentation
+
+- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architecture, diagrams, and the design decisions behind the trust model
+- [`CONTRIBUTING.md`](CONTRIBUTING.md) — development setup and the trust-gate philosophy
+- [`SECURITY.md`](SECURITY.md) — security guarantees and how to report a vulnerability
+- [`CHANGELOG.md`](CHANGELOG.md) — release notes
 
 ## License
 
