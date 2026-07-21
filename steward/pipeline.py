@@ -29,6 +29,7 @@ from steward.llm import (
 )
 from steward.models import AnalysisResult, Evidence, Finding, Fleet, Tool, ToolCatalog
 from steward.redaction import redact_text
+from steward.scoring import score_and_rank_findings
 
 
 def _clean_text(value: Any, *, limit: int) -> str | None:
@@ -862,9 +863,12 @@ def analyze_fleet(
     result = _enrich(result, llm or BedrockLLM())
     # LLM-generalized findings are generated after the deterministic tier, so
     # apply the same deterministic external-context and control-framework
-    # mappings at the final public pipeline boundary. This never changes
-    # whether a finding exists.
-    result.findings = annotate_findings_with_control_frameworks(
-        ground_findings_in_real_world_context(result.findings)
+    # mappings — and the reproducible risk score/rank — at the final public
+    # pipeline boundary. This never changes whether a finding exists.
+    result.findings = score_and_rank_findings(
+        annotate_findings_with_control_frameworks(
+            ground_findings_in_real_world_context(result.findings)
+        ),
+        result.fleet,
     )
     return result

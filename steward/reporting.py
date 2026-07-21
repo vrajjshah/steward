@@ -575,12 +575,18 @@ def _external_references(value: Any, *, kind: str) -> list[dict[str, str]]:
 
 
 def normalize_findings(findings: Iterable[Any]) -> list[dict[str, Any]]:
-    """Normalize and deterministically order findings for API/report output."""
+    """Normalize and deterministically order findings for API/report output.
+
+    The composite risk score leads the ordering so every surface presents the
+    same auditor-reproducible ranking; severity and identity fields break ties
+    and keep older cached results (with no recorded score) deterministic.
+    """
 
     public = [_finding_public(item) for item in findings]
     return sorted(
         public,
         key=lambda item: (
+            -(item.get("risk_score") or 0),
             -SEVERITY_ORDER.get(item["severity"], 0),
             item["check_type"],
             item["agent_id"],
@@ -647,10 +653,14 @@ def build_certification_packet(
             gap = []
         card_findings = findings_by_agent.get(agent_id, [])
         review = as_dict((reviews or {}).get(agent_id, {}))
+        top_risk_score = max(
+            (finding.get("risk_score") or 0 for finding in card_findings), default=0
+        )
         cards.append(
             {
                 "agent": identity,
                 "risk_tier": risk_tier(card_findings),
+                "top_risk_score": top_risk_score,
                 "findings": card_findings,
                 "needed_capabilities": needed,
                 "granted_vs_needed_gap": gap,
@@ -662,6 +672,11 @@ def build_certification_packet(
                 },
             }
         )
+
+    # The review queue is ranked by the same reproducible score as the
+    # findings themselves; agents with no findings keep inventory order at the
+    # tail via the id tiebreak.
+    cards.sort(key=lambda card: (-card["top_risk_score"], card["agent"]["id"]))
 
     return {
         "schema_version": "0.1",
@@ -908,9 +923,14 @@ def render_markdown_report(report: Mapping[str, Any]) -> str:
     if not findings:
         lines.append("No verified findings were emitted.")
     for finding in findings:
+        score_suffix = (
+            f" · risk score {finding.get('risk_score')}/100"
+            if finding.get("risk_score") is not None
+            else ""
+        )
         lines.extend(
             [
-                f"### [{str(finding.get('severity', 'low')).upper()}] {finding.get('title', '')}",
+                f"### [{str(finding.get('severity', 'low')).upper()}{score_suffix}] {finding.get('title', '')}",
                 "",
                 f"**Agent:** `{finding.get('agent_id', '')}`  ",
                 f"**Control:** {finding.get('control_mapping', '')}",
@@ -949,11 +969,14 @@ def render_markdown_report(report: Mapping[str, Any]) -> str:
                 )
         lines.append("")
 
-    lines.extend(["## Certification queue", ""])
+    lines.extend(["## Certification queue (ranked by composite risk score)", ""])
     for card in report.get("certification_packet", {}).get("risk_cards", []):
         agent = card.get("agent", {})
+        score = card.get("top_risk_score") or 0
+        score_text = f", top score: {score}/100" if score else ""
         lines.append(
             f"- `{agent.get('id', '')}` ({agent.get('name', '')}) — "
-            f"risk: **{card.get('risk_tier', 'clear')}**, review: {card.get('review', {}).get('status', 'pending')}"
+            f"risk: **{card.get('risk_tier', 'clear')}**{score_text}, "
+            f"review: {card.get('review', {}).get('status', 'pending')}"
         )
     return "\n".join(lines).rstrip() + "\n"

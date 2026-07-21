@@ -189,6 +189,7 @@ input:focus, select:focus, textarea:focus { border-color: var(--blue-strong); bo
 .context-link small { color: var(--faint); font-size: 9px; }
 .context-owasp { color: #c8d6ff; }
 .context-framework { background: rgba(214,178,110,.07); border-color: rgba(214,178,110,.28); color: #ecd9b4; cursor: help; }
+.score-badge { background: rgba(255,148,120,.09); border: 1px solid rgba(255,148,120,.32); border-radius: 7px; color: #ffc4ae; cursor: help; font-size: 10px; font-weight: 600; letter-spacing: .04em; padding: 3px 7px; text-transform: uppercase; }
 .evidence-title { color: var(--faint); font-size: 10px; font-weight: 750; letter-spacing: .06em; margin-right: 2px; text-transform: uppercase; }
 .evidence-chip { align-items: center; background: #111824; border: 1px solid #31405b; border-radius: 5px; display: inline-flex; gap: 5px; max-width: 100%; padding: 3px 6px; }
 .evidence-chip small { color: var(--faint); font-size: 9px; white-space: nowrap; }

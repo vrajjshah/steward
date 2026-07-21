@@ -144,6 +144,7 @@
     <article class="finding-card severity-{{ finding.severity }}">
       <div class="finding-topline">
         <span class="severity-badge">{{ finding.severity }}</span>
+        {% if finding.risk_score is not none %}<span class="score-badge" title="Deterministic composite risk score (base severity + blast radius + data sensitivity + exploitability); reproducible every run.">risk {{ finding.risk_score }}/100</span>{% endif %}
         <span class="check-badge">{{ finding.check_label }}</span>
         <span class="source-badge {{ finding.source_css_class }}" title="{{ finding.source_description }}">{{ finding.source_label }}</span>
         <a class="agent-link" href="/risk-cards/{{ finding.agent_id }}">{{ finding.agent_id }} ↗</a>
