@@ -8,12 +8,14 @@ jobs:
   eval:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.12"
       - name: Install Steward
-        run: pip install -e ".[dev]"
+        # The annotation plugin surfaces each pytest failure as a check-run
+        # annotation, so failures are diagnosable from the public API.
+        run: pip install -e ".[dev]" pytest-github-actions-annotate-failures
       - name: Lint
         run: ruff check .
       - name: Test
