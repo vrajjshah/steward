@@ -218,7 +218,23 @@ def analyze(
     no_llm: Annotated[
         bool,
         typer.Option(
-            "--no-llm", help="Skip optional Bedrock enrichment; deterministic checks still run."
+            "--no-llm", help="Skip optional model enrichment; deterministic checks still run."
+        ),
+    ] = False,
+    fail_on: Annotated[
+        str | None,
+        typer.Option(
+            "--fail-on",
+            help="Exit non-zero when any finding at or above this severity exists "
+            "(critical|high|medium|low). Makes analyze usable as a CI gate.",
+        ),
+    ] = None,
+    fail_on_drift: Annotated[
+        bool,
+        typer.Option(
+            "--fail-on-drift",
+            help="With --traces: exit non-zero when reconciliation detects drift "
+            "(used-but-not-granted access or unknown agent identities).",
         ),
     ] = False,
     state_dir: Annotated[
@@ -229,6 +245,19 @@ def analyze(
     ] = DEFAULT_LEDGER_STATE,
 ) -> None:
     """Analyze a native fleet or MCP config and print a concise summary."""
+
+    severity_order = {"low": 1, "medium": 2, "high": 3, "critical": 4}
+    fail_threshold: int | None = None
+    if fail_on is not None:
+        fail_threshold = severity_order.get(fail_on.strip().lower())
+        if fail_threshold is None:
+            raise typer.BadParameter(
+                "Use one of: critical, high, medium, low.", param_hint="--fail-on"
+            )
+    if fail_on_drift and traces is None:
+        raise typer.BadParameter(
+            "--fail-on-drift requires --traces.", param_hint="--fail-on-drift"
+        )
 
     loaded_fleet, loaded_tools, source = _load_input(fleet, tools, mcp)
     trace_log = None
@@ -250,8 +279,29 @@ def analyze(
             f"- [{finding.source}] [{finding.severity.upper()}] "
             f"{finding.agent_id}: {finding.title}"
         )
+    reconciliation = None
     if trace_log is not None:
-        _echo_reconciliation(reconcile(result, trace_log))
+        reconciliation = reconcile(result, trace_log)
+        _echo_reconciliation(reconciliation)
+
+    # CI gating happens after every report/output above has been written, so a
+    # failing build still carries the full evidence for the human reading it.
+    exit_reasons: list[str] = []
+    if fail_threshold is not None:
+        gating = [
+            finding
+            for finding in result.findings
+            if severity_order.get(finding.severity, 0) >= fail_threshold
+        ]
+        if gating:
+            exit_reasons.append(
+                f"{len(gating)} finding(s) at or above severity '{fail_on}'"
+            )
+    if fail_on_drift and reconciliation is not None and reconciliation.drift_detected:
+        exit_reasons.append("runtime drift detected (see DRIFT lines above)")
+    if exit_reasons:
+        typer.echo(f"GATE FAILED: {'; '.join(exit_reasons)}.", err=True)
+        raise typer.Exit(code=1)
 
     appended = _append_findings_to_ledger(_initialized_ledger(state_dir), result.findings)
     if appended:

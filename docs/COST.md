@@ -81,6 +81,12 @@ tier's conclusion does not change.
 5. **Model-tier right-sizing is a lever, not a rewrite.** The `MODEL_*` env
    contract means dropping narratives/classification to `gpt-oss-20b` (or any
    cheaper Converse model) is configuration, not code.
+6. **A local backend changes the cost model entirely.** With
+   `LLM_BACKEND=ollama` (or any OpenAI-compatible local endpoint), marginal
+   token cost is $0 — the spend moves to hardware you already own, and the
+   projection table above collapses to a throughput question. For teams whose
+   binding constraint is procurement or data egress rather than dollars, that
+   is usually the right trade.
 
 ## 4. Honest limits
 

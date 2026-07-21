@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **CI gating flags on `steward analyze`**: `--fail-on <severity>` exits non-zero
+  when any finding at or above the threshold exists, and `--fail-on-drift` (with
+  `--traces`) exits non-zero on used-but-not-granted access or unknown identities
+  — so a pull request that grants a toxic pair, or a trace window showing drift,
+  fails the build. Findings and the reconciliation report are printed before the
+  exit so the CI log carries the evidence.
 - **Pluggable model backends** (`LLM_BACKEND`): the enrichment tier now runs on
   (1) a local Ollama or any OpenAI-compatible `/v1/chat/completions` endpoint —
   zero cloud account, zero data egress, the recommended posture for security

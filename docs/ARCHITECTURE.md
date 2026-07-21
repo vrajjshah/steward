@@ -104,7 +104,7 @@ flowchart TB
     MCP["MCP config<br/>claude_desktop_config.json"] -->|"strip env / secrets"| ADAPT["MCP adapter"] --> LOAD["Typed models<br/>Pydantic · extra=forbid"]
     LOAD --> GRAPH["Effective-access graph<br/>direct ∪ delegated · transitive"]
     GRAPH --> DET["<b>Tier 1 · Deterministic checks</b><br/>SoD · over-privilege · escalation · orphan"]
-    GRAPH -.->|"redacted metadata"| LLM["<b>Tier 2 · Model generalization</b><br/>gpt-oss-120b on Bedrock · optional"]
+    GRAPH -.->|"redacted metadata"| LLM["<b>Tier 2 · Model generalization</b><br/>pluggable backend · optional<br/>local Ollama / Bedrock / OpenAI-compatible"]
     DET --> CITE["<b>Citation verifier</b><br/>every finding cites real<br/>agents / tools / edges"]
     LLM -.->|"candidate toxic combos"| CITE
     CITE --> FIND["Findings<br/>source-labeled · cited"]
@@ -126,7 +126,7 @@ Module map:
 | Typed inventory & schemas | `steward/models.py`, `steward/loaders.py` |
 | Effective-access graph | `steward/graph.py` |
 | Deterministic checks + citation verifier | `steward/findings.py` |
-| Model enrichment (Bedrock Converse) | `steward/llm.py`, `steward/pipeline.py` |
+| Model enrichment (pluggable backends: Bedrock Converse, OpenAI-compatible/local) | `steward/llm.py`, `steward/pipeline.py` |
 | Redaction boundary | `steward/redaction.py` |
 | MCP config ingestion | `steward/adapters.py` |
 | Least-privilege policy | `steward/policy_gen.py` |

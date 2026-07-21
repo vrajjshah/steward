@@ -157,10 +157,10 @@ flowchart TB
     MCP["MCP config"] -->|"strip env / secrets"| ADAPT["MCP adapter"] --> LOAD["Typed models"]
     LOAD --> GRAPH["Effective-access graph<br/>direct ∪ delegated"]
     GRAPH --> DET["Tier 1 · Deterministic checks<br/>SoD · over-privilege · escalation · orphan"]
-    GRAPH -.->|"redacted metadata"| LLM["Tier 2 · Model generalization<br/>gpt-oss-120b · optional"]
+    GRAPH -.->|"redacted metadata"| LLM["Tier 2 · Model generalization<br/>local Ollama · Bedrock · OpenAI-compatible"]
     DET --> CITE["Citation verifier<br/>every finding cites real entities"]
     LLM -.->|"candidate combos"| CITE
-    CITE --> FIND["Findings · source-labeled · cited"]
+    CITE --> FIND["Findings · cited · risk-scored<br/>control-framework mapped"]
     FIND --> OUT["Dashboard · risk cards · reports"]
     FIND --> POL["Least-privilege policy"] --> ENF["MCP enforcement gate"]
     FIND --> LED[("Signed audit ledger")]
@@ -212,7 +212,7 @@ The configured runtime model can infer capability labels and propose additional 
 
 The model tier is measured on a committed, labeled 20-scenario benchmark ([`evals/benchmark/`](evals/benchmark)): 8 in-scope toxic sensitive-read + external-egress pairs, 8 engineered benign near-misses (internal-only delivery, draft-only senders, ticket creation, public sources), and 4 genuinely toxic pairs deliberately outside the v0.1 egress-only prompt scope. The benchmark fleet is deterministically silent, so every flag comes from the model tier.
 
-On the cached live `gpt-oss-120b` run ([`evals/benchmark/results.json`](evals/benchmark/results.json)), the model tier flagged **8/8 in-scope toxic pairs (recall 1.000)** with **0/8 false positives (precision 1.000)** and **zero hallucinated citations**, and correctly declined to flag the 4 out-of-scope pairs its prompt assigns to the deterministic floor. This is a 20-scenario synthetic measurement from a single temperature-0 run — evidence the egress lens separates real toxic pairs from near-misses, not a real-world accuracy claim. `make llm-benchmark` re-verifies the committed result offline; `make llm-benchmark-live` reruns it against configured Bedrock models. Details and limits: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#how-accurate-is-tier-2-actually).
+On the cached live `gpt-oss-120b` run ([`evals/benchmark/results.json`](evals/benchmark/results.json)), the model tier flagged **8/8 in-scope toxic pairs (recall 1.000)** with **0/8 false positives (precision 1.000)** and **zero hallucinated citations**, and correctly declined to flag the 4 out-of-scope pairs its prompt assigns to the deterministic floor. This is a 20-scenario synthetic measurement from a single temperature-0 run — evidence the egress lens separates real toxic pairs from near-misses, not a real-world accuracy claim. `make llm-benchmark` re-verifies the committed result offline; `make llm-benchmark-live` reruns it against whatever backend and models `LLM_BACKEND`/`MODEL_*` select. Details and limits: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#how-accurate-is-tier-2-actually).
 
 Getting started with either backend:
 
@@ -320,7 +320,7 @@ Observed usage fills the **Used** pillar for the agents that appear in the trace
 - **used but not granted** — an invocation outside the agent's *effective* access, reported as `DRIFT`: either the inventory is stale or the runtime is not enforcing it. This deliberately cannot be a finding — the citation verifier rejects evidence outside effective access by design — so it surfaces as reconciliation drift;
 - **used but not needed** — observed use of a capability the model tier inferred the declared purpose does not require; model-assisted review context, labelled as such.
 
-Events naming unknown agents or tools stay visible as drift lines (a retired identity still running is itself a governance signal). Tool-call arguments, results, and prompts are ignored at parse time and never retained — trace ingestion reads identity metadata only. [`examples/traces.jsonl`](examples/traces.jsonl) demonstrates all three signals against the demo fleet.
+Events naming unknown agents or tools stay visible as drift lines (a retired identity still running is itself a governance signal). Tool-call arguments, results, and prompts are ignored at parse time and never retained — trace ingestion reads identity metadata only. [`examples/traces.jsonl`](examples/traces.jsonl) demonstrates all three signals against the demo fleet, and `--fail-on-drift` turns the drift signal into a non-zero exit for CI (see [Gate your own CI on Steward](#gate-your-own-ci-on-steward)).
 
 ## Certification and IGA reporting
 
@@ -344,11 +344,11 @@ zero-key dashboard continues to run with no local state.
 
 ```text
 data/       synthetic fleet, unlabeled tool catalog, answer key, demo cache
-steward/    graph, deterministic checks, adapters, Bedrock wrapper, ledger, policy gate, API/UI, reports
-examples/   credential-free MCP import and bundled red-team exfiltration scenario
-evals/      golden-set precision/recall and citation-validity gate
-tests/      focused safety and adapter tests
-docs/       architecture and design documentation
+steward/    graph, deterministic checks, scoring, control mapping, adapters, traces, model backends, ledger, policy gate, API/UI, reports
+examples/   credential-free MCP imports, sample runtime trace, bundled red-team exfiltration scenario
+evals/      golden-set gate + labeled LLM-tier accuracy benchmark
+tests/      focused safety, adapter, scoring, and gating tests
+docs/       architecture, cost, and audience documentation
 .github/    CI workflow
 ```
 
@@ -361,6 +361,20 @@ make eval
 ```
 
 GitHub Actions runs lint plus `make eval` on every push and pull request. The deterministic synthetic thresholds are deliberately `1.0`: a regression, invalid citation, or a false positive on a clean control fails CI. LLM-generalized proposals are graph-citation verified at runtime, but they are outside this v0.1 golden-set precision gate.
+
+### Gate your own CI on Steward
+
+`steward analyze` exits non-zero when you tell it what should fail a build, so a pull request that grants an agent a toxic pair — or a trace window showing access used outside the inventory — stops before merge:
+
+```bash
+# Fail the build on any high-or-critical finding (deterministic, no keys needed)
+steward analyze --no-llm --fleet fleet.json --tools tools.json --fail-on high
+
+# Fail the build when runtime traces show drift (used-but-not-granted access)
+steward analyze --no-llm --traces traces.jsonl --fail-on-drift
+```
+
+The full findings and reconciliation report are printed before the non-zero exit, so the CI log carries the evidence a reviewer needs.
 
 ## How Steward compares
 
