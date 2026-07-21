@@ -6,6 +6,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- Architecture documentation (`docs/ARCHITECTURE.md`) with system, Granted/Used/Needed,
+  detect→close→prove, and domain-model diagrams; a **mapping of each check to the OWASP
+  LLM Top 10 (2025)** — over-privilege / toxic-combos / escalation as facets of
+  **LLM06 Excessive Agency**, and the exfiltration path as **LLM02 Sensitive Information
+  Disclosure**.
+- Contributing guide, security policy, README badges, and CI that now runs lint + tests + eval.
+
 ### Planned
 - Ingestion of real agent execution traces (the "Used" pillar) with drift detection.
 - Live connectors for agent registries, MCP gateways, and cloud IAM.

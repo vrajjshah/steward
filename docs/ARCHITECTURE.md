@@ -148,6 +148,27 @@ The model's Tier-2 job is to widen the *first* row — spotting toxic combinatio
 while the deterministic pairs guarantee the crown-jewel findings never depend on
 model variance.
 
+### Mapping to OWASP LLM Top 10 (2025)
+
+Steward's checks are not arbitrary — they are the identity-governance view of the
+industry's agent-security taxonomy. **OWASP LLM06: Excessive Agency** is defined
+as excessive *permissions*, excessive *functionality*, and excessive *autonomy* —
+a near-exact description of Steward's three access checks.
+
+| Steward check | OWASP LLM Top 10 (2025) | OWASP MCP Top 10 |
+|---|---|---|
+| Over-privilege (`Granted − Used`) | **LLM06 Excessive Agency** — excessive permissions | — |
+| SoD toxic combination | **LLM06 Excessive Agency** — excessive functionality | — |
+| Escalation via delegation | **LLM06 Excessive Agency** — excessive autonomy (confused deputy) | **MCP02** Privilege Escalation via Scope Creep |
+| Sensitive-data + external-egress (SupportBot / SalesBot) | **LLM02 Sensitive Information Disclosure** | **MCP03** Tool Poisoning · **MCP04** Supply-Chain |
+| Orphaned agent | Insecure design / accountability gap | **MCP01** Token & Secret Exposure (adjacent) |
+
+Steward is a *preventive* control for Excessive Agency: it finds the excess in an
+agent's granted authority before an attacker (via prompt injection, LLM01) can
+weaponize it. The findings already carry structured OWASP **MCP** references in
+their `owasp_mcp` field; the LLM Top 10 mapping above is the complementary lens
+for AI-security reviewers.
+
 ## 6. Citation verification — why no finding is ever hallucinated
 
 Every `Finding` must carry `evidence: list[Evidence]` with **at least one**
