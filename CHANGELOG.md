@@ -28,6 +28,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   reconciliation signal, not a finding, because citation verification rejects evidence
   outside effective access), and model-assisted *used-but-not-needed*. Payload fields
   are dropped at parse time; sample trace at `examples/traces.jsonl`.
+- **Cost analysis** (`docs/COST.md`): measured per-analysis call profile and model
+  spend from the project's own cost/latency log (~$0.008 per enriched analysis;
+  the deterministic tier is $0), with projections and the binding architectural
+  change at 100 / 1K / 10K / 100K analyses.
 - Architecture documentation (`docs/ARCHITECTURE.md`) with system, Granted/Used/Needed,
   detect→close→prove, and domain-model diagrams; a **mapping of each check to the OWASP
   LLM Top 10 (2025)** — over-privilege / toxic-combos / escalation as facets of

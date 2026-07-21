@@ -359,6 +359,7 @@ cited route, and a signed record proving the demonstration decision occurred.
 ## Documentation
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architecture, diagrams, and the design decisions behind the trust model
+- [`docs/COST.md`](docs/COST.md) — measured per-analysis model cost and the architecture changes at 100/1K/10K/100K analyses
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — development setup and the trust-gate philosophy
 - [`SECURITY.md`](SECURITY.md) — security guarantees and how to report a vulnerability
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes
