@@ -79,6 +79,13 @@ def looks_like_high_entropy_secret(value: object) -> bool:
         return False
     if "://" in candidate or candidate.startswith(("/", "./", "../")):
         return False
+    # A snake/kebab-case identifier made of plain lowercase words is
+    # configuration vocabulary (e.g. "read_financial_statements"), not an
+    # opaque credential: real tokens mix digits or case. Without this
+    # exemption, long tool ids are silently replaced in LLM payloads and the
+    # model can never classify or cite them.
+    if re.fullmatch(r"[a-z]+(?:[_-][a-z]+)+", candidate):
+        return False
     # API credentials usually have multiple character classes. Requiring at
     # least two avoids treating a long ordinary identifier as sensitive.
     classes = sum(

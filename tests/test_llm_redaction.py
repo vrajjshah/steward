@@ -1,6 +1,28 @@
 from __future__ import annotations
 
 from steward.llm import BedrockLLM, CostLatencyLogger, classify_tools, identify_toxic_combinations
+from steward.redaction import redact_text
+
+
+def test_long_word_identifiers_survive_redaction() -> None:
+    """Long snake/kebab-case tool ids are vocabulary, not credentials.
+
+    Before this exemption, ids such as ``read_financial_statements`` tripped
+    the high-entropy heuristic, were replaced in outbound LLM payloads, and
+    could therefore never be classified or cited by the model tier.
+    """
+
+    for identifier in (
+        "read_financial_statements",
+        "create_onboarding_checklist",
+        "approve_contractor_invoice",
+        "browser-take-screenshot-full-page",
+    ):
+        assert redact_text(identifier) == identifier
+
+    # Token-like strings with digits or mixed case must still be masked.
+    assert redact_text("sk-THIS_IS_A_PLANTED_SECRET_9J4sP0kLmN7qR2xV") == "[REDACTED]"
+    assert redact_text("A1b2C3d4E5f6G7h8I9j0K1l2M3n4") == "[REDACTED]"
 
 
 class CapturingBedrockClient:

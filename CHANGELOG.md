@@ -18,6 +18,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   multi-hop escalation finding. Answer key and demo cache regenerated in lockstep; the
   deterministic gate remains 1.000.
 
+### Fixed
+- The high-entropy secret heuristic no longer masks long snake/kebab-case word
+  identifiers (e.g. `read_financial_statements`) in outbound LLM payloads. Two
+  synthetic-fleet tools were previously unclassifiable because their ids arrived
+  at the model as `[REDACTED]`; the regenerated demo cache now records complete
+  (34/34) tool classification. Credential-shaped strings are still masked.
+
 ### Planned
 - Ingestion of real agent execution traces (the "Used" pillar) with drift detection.
 - Live connectors for agent registries, MCP gateways, and cloud IAM.
