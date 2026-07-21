@@ -1,0 +1,186 @@
+{
+ "schema_version": "0.1",
+ "fleet_name": "LLM-tier accuracy benchmark scenarios",
+ "agents": [
+  {
+   "id": "support_export_bot",
+   "name": "SupportExportBot",
+   "owner": "Dana Reyes, Support Operations",
+   "description": "Prepares weekly support-case attachments and publishes them for the field team.",
+   "granted_tools": ["read_support_tickets", "upload_public_bucket"],
+   "can_delegate_to": [],
+   "usage_log": ["read_support_tickets", "upload_public_bucket"]
+  },
+  {
+   "id": "hr_survey_bot",
+   "name": "HRSurveyBot",
+   "owner": "Priya Nair, People Analytics",
+   "description": "Turns workforce data into engagement highlights for company channels.",
+   "granted_tools": ["read_employee_records", "post_social_media"],
+   "can_delegate_to": [],
+   "usage_log": ["read_employee_records", "post_social_media"]
+  },
+  {
+   "id": "finance_disclosure_bot",
+   "name": "FinanceDisclosureBot",
+   "owner": "Marcus Cole, Corporate Finance",
+   "description": "Drafts earnings-cycle communications from the close package.",
+   "granted_tools": ["read_financial_statements", "publish_blog_post"],
+   "can_delegate_to": [],
+   "usage_log": ["read_financial_statements", "publish_blog_post"]
+  },
+  {
+   "id": "claims_notifier_bot",
+   "name": "ClaimsNotifierBot",
+   "owner": "Elena Vasquez, Claims Operations",
+   "description": "Notifies members about the status of their open claims.",
+   "granted_tools": ["read_insurance_claims", "send_sms_external"],
+   "can_delegate_to": [],
+   "usage_log": ["read_insurance_claims", "send_sms_external"]
+  },
+  {
+   "id": "code_snippet_bot",
+   "name": "CodeSnippetBot",
+   "owner": "Tom Okafor, Developer Experience",
+   "description": "Shares helpful code examples with the developer community.",
+   "granted_tools": ["read_proprietary_source", "create_public_gist"],
+   "can_delegate_to": [],
+   "usage_log": ["read_proprietary_source", "create_public_gist"]
+  },
+  {
+   "id": "partner_sync_bot",
+   "name": "PartnerSyncBot",
+   "owner": "Grace Lin, Alliances",
+   "description": "Keeps a reseller partner's systems current with account information.",
+   "granted_tools": ["read_customer_accounts", "sync_partner_api"],
+   "can_delegate_to": [],
+   "usage_log": ["read_customer_accounts", "sync_partner_api"]
+  },
+  {
+   "id": "legal_matter_bot",
+   "name": "LegalMatterBot",
+   "owner": "Sam Ferris, Legal Operations",
+   "description": "Assembles matter documentation packets for outside counsel workflows.",
+   "granted_tools": ["read_legal_matters", "upload_vendor_portal"],
+   "can_delegate_to": [],
+   "usage_log": ["read_legal_matters", "upload_vendor_portal"]
+  },
+  {
+   "id": "comp_report_bot",
+   "name": "CompReportBot",
+   "owner": "Ava Sorenson, Total Rewards",
+   "description": "Produces compensation benchmarking reports for survey providers.",
+   "granted_tools": ["read_compensation_data", "email_external_recipients"],
+   "can_delegate_to": [],
+   "usage_log": ["read_compensation_data", "email_external_recipients"]
+  },
+  {
+   "id": "account_digest_bot",
+   "name": "AccountDigestBot",
+   "owner": "Noah Park, Sales Enablement",
+   "description": "Summarizes account activity into a morning digest for the sales team.",
+   "granted_tools": ["read_customer_accounts", "send_internal_digest"],
+   "can_delegate_to": [],
+   "usage_log": ["read_customer_accounts", "send_internal_digest"]
+  },
+  {
+   "id": "reply_draft_bot",
+   "name": "ReplyDraftBot",
+   "owner": "Dana Reyes, Support Operations",
+   "description": "Drafts suggested replies for support agents to review and send.",
+   "granted_tools": ["read_support_tickets", "draft_reply_email"],
+   "can_delegate_to": [],
+   "usage_log": ["read_support_tickets", "draft_reply_email"]
+  },
+  {
+   "id": "hr_case_bot",
+   "name": "HRCaseBot",
+   "owner": "Priya Nair, People Analytics",
+   "description": "Opens HR cases when employee records need correction.",
+   "granted_tools": ["read_employee_records", "create_hr_ticket"],
+   "can_delegate_to": [],
+   "usage_log": ["read_employee_records", "create_hr_ticket"]
+  },
+  {
+   "id": "brand_social_bot",
+   "name": "BrandSocialBot",
+   "owner": "Lucia Marino, Brand Marketing",
+   "description": "Publishes scheduled brand posts that follow the style guide.",
+   "granted_tools": ["read_brand_guidelines", "post_social_media"],
+   "can_delegate_to": [],
+   "usage_log": ["read_brand_guidelines", "post_social_media"]
+  },
+  {
+   "id": "claims_summary_bot",
+   "name": "ClaimsSummaryBot",
+   "owner": "Elena Vasquez, Claims Operations",
+   "description": "Summarizes claim files for internal adjuster review.",
+   "granted_tools": ["read_insurance_claims", "summarize_text"],
+   "can_delegate_to": [],
+   "usage_log": ["read_insurance_claims", "summarize_text"]
+  },
+  {
+   "id": "market_watch_bot",
+   "name": "MarketWatchBot",
+   "owner": "Iris Chen, Competitive Intelligence",
+   "description": "Emails analysts a roundup of public market and competitor news.",
+   "granted_tools": ["search_public_web", "email_external_recipients"],
+   "can_delegate_to": [],
+   "usage_log": ["search_public_web", "email_external_recipients"]
+  },
+  {
+   "id": "records_archive_bot",
+   "name": "RecordsArchiveBot",
+   "owner": "Marcus Cole, Corporate Finance",
+   "description": "Archives finalized financial statements for retention compliance.",
+   "granted_tools": ["read_financial_statements", "archive_internal_storage"],
+   "can_delegate_to": [],
+   "usage_log": ["read_financial_statements", "archive_internal_storage"]
+  },
+  {
+   "id": "price_newsletter_bot",
+   "name": "PriceNewsletterBot",
+   "owner": "Lucia Marino, Brand Marketing",
+   "description": "Sends subscribers the monthly product and pricing newsletter.",
+   "granted_tools": ["read_published_pricing", "send_newsletter_external"],
+   "can_delegate_to": [],
+   "usage_log": ["read_published_pricing", "send_newsletter_external"]
+  },
+  {
+   "id": "treasury_bot",
+   "name": "TreasuryBot",
+   "owner": "Marcus Cole, Corporate Finance",
+   "description": "Automates treasury wire operations end to end.",
+   "granted_tools": ["initiate_wire_transfer", "release_wire_transfer"],
+   "can_delegate_to": [],
+   "usage_log": ["initiate_wire_transfer", "release_wire_transfer"]
+  },
+  {
+   "id": "contractor_pay_bot",
+   "name": "ContractorPayBot",
+   "owner": "Ava Sorenson, Total Rewards",
+   "description": "Onboards contractors and settles their invoices.",
+   "granted_tools": ["create_contractor_record", "approve_contractor_invoice"],
+   "can_delegate_to": [],
+   "usage_log": ["create_contractor_record", "approve_contractor_invoice"]
+  },
+  {
+   "id": "role_admin_bot",
+   "name": "RoleAdminBot",
+   "owner": "Owen Diaz, IT Service Desk",
+   "description": "Handles application role requests for new team members.",
+   "granted_tools": ["open_access_request", "assign_application_role"],
+   "can_delegate_to": [],
+   "usage_log": ["open_access_request", "assign_application_role"]
+  },
+  {
+   "id": "retention_purge_bot",
+   "name": "RetentionPurgeBot",
+   "owner": "Sam Ferris, Legal Operations",
+   "description": "Applies the data retention schedule to customer records.",
+   "granted_tools": ["read_customer_accounts", "purge_database_records"],
+   "can_delegate_to": [],
+   "usage_log": ["read_customer_accounts", "purge_database_records"]
+  }
+ ]
+}

@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Labeled LLM-tier accuracy benchmark** (`evals/benchmark/`, `make llm-benchmark`):
+  20 ground-truth scenarios — 8 in-scope toxic sensitive-read + external-egress pairs,
+  8 benign near-misses, 4 out-of-scope toxic pairs — measuring the model tier's
+  precision/recall and hallucinated-citation rate separately from the deterministic
+  gate. Cached live `gpt-oss-120b` result: 8/8 recall, 0/8 false positives, 0
+  hallucinated citations; CI re-verifies the cache offline.
 - Architecture documentation (`docs/ARCHITECTURE.md`) with system, Granted/Used/Needed,
   detect→close→prove, and domain-model diagrams; a **mapping of each check to the OWASP
   LLM Top 10 (2025)** — over-privilege / toxic-combos / escalation as facets of

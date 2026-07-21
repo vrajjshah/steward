@@ -52,7 +52,7 @@ For the built-in synthetic data, use:
 make eval
 ```
 
-The eval is a regression + precision gate on a labeled synthetic fleet. It proves the deterministic checks reliably catch the planted crown-jewel risks and produce zero false positives on the clean agents in this fixture. It is not a measure of real-world accuracy, and the deterministic tier does not exercise runtime model enrichment. `make eval` also reports a separate offline LLM-tier integration-fixture result; that result is not required-perfect and is not a real-world model-accuracy benchmark.
+The eval is a regression + precision gate on a labeled synthetic fleet. It proves the deterministic checks reliably catch the planted crown-jewel risks and produce zero false positives on the clean agents in this fixture. It is not a measure of real-world accuracy, and the deterministic tier does not exercise runtime model enrichment. `make eval` also reports a separate offline LLM-tier integration-fixture result; that result is not required-perfect and is not a model-accuracy benchmark. The model tier's accuracy is measured separately on a [labeled 20-scenario benchmark](#how-accurate-is-the-model-tier) (`make llm-benchmark`).
 
 ## Detect → close → prove (zero-key)
 
@@ -192,6 +192,12 @@ Tool classification is bounded to six tools per request. Each batch has its own 
 | Auditor-facing finding narrative and fix | `MODEL_SOL` |
 
 The configured runtime model can infer capability labels and propose additional toxic combinations, but it cannot create an uncited finding: Steward constructs evidence itself from graph entities and reruns citation verification. A surviving proposal is labeled **LLM-generalized**. The v0.1 prompt uses a deliberately conservative external-data-egress lens, so unfamiliar sensitive-data sources and external delivery tools can be generalized without promoting routine internal read/update/draft workflows. It is graph-citation verified, but it is measured separately from—and is not required-perfect by—the deterministic golden-set gate.
+
+#### How accurate is the model tier?
+
+The model tier is measured on a committed, labeled 20-scenario benchmark ([`evals/benchmark/`](evals/benchmark)): 8 in-scope toxic sensitive-read + external-egress pairs, 8 engineered benign near-misses (internal-only delivery, draft-only senders, ticket creation, public sources), and 4 genuinely toxic pairs deliberately outside the v0.1 egress-only prompt scope. The benchmark fleet is deterministically silent, so every flag comes from the model tier.
+
+On the cached live `gpt-oss-120b` run ([`evals/benchmark/results.json`](evals/benchmark/results.json)), the model tier flagged **8/8 in-scope toxic pairs (recall 1.000)** with **0/8 false positives (precision 1.000)** and **zero hallucinated citations**, and correctly declined to flag the 4 out-of-scope pairs its prompt assigns to the deterministic floor. This is a 20-scenario synthetic measurement from a single temperature-0 run — evidence the egress lens separates real toxic pairs from near-misses, not a real-world accuracy claim. `make llm-benchmark` re-verifies the committed result offline; `make llm-benchmark-live` reruns it against configured Bedrock models. Details and limits: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#how-accurate-is-tier-2-actually).
 
 Configure the `MODEL_*` values with enabled Bedrock model IDs. In the current runtime they point to OpenAI `gpt-oss-120b`; accounts with GPT-5.6 Sol/Terra/Luna access can point the same variables at those models instead:
 

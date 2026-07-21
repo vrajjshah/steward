@@ -119,7 +119,7 @@ what they are trusting.
 NetworkX graph, computes effective access, hard-asserts the crown-jewel toxic
 pairs, finds unused grants / delegated blast radius / orphans, and verifies
 every citation. This tier is the CI gate: it must hold **precision = recall =
-1.000** on the labeled synthetic fleet, with zero false positives on the 13
+1.000** on the labeled synthetic fleet, with zero false positives on the 20
 clean control agents. A regression, an invalid citation, or a false positive
 fails the build.
 
@@ -133,6 +133,45 @@ of a trustworthy floor, not a replacement for it.
 
 > The moat is the code around the model, not the prompt inside it. *A skill is
 > advice; Steward is evidence.*
+
+### How accurate is Tier 2, actually?
+
+Two separate measurements, neither of which gates CI:
+
+- The **offline integration fixture** in `make eval` proves the pipeline wiring
+  can carry a model proposal through the citation gate with no AWS account. It
+  measures integration, not model accuracy.
+- A **labeled 20-scenario accuracy benchmark** (`evals/benchmark/`, live run via
+  `make llm-benchmark-live`) measures the model tier itself. Every scenario
+  agent holds exactly one two-tool combination with a ground-truth label:
+  **8 in-scope toxic pairs** (sensitive-read + external-egress across support,
+  HR, finance, health-claims, source-code, CRM, legal, and compensation data),
+  **8 benign near-misses** (internal-only delivery, draft-only senders, ticket
+  creation, summarization, public sources), and **4 genuinely toxic pairs that
+  are deliberately outside the v0.1 egress-only prompt** (novel
+  initiate-vs-approve, hire-vs-pay, and request-vs-grant variants plus a
+  destructive purge pair). The benchmark fleet is deterministically silent, so
+  every flag is model-tier output.
+
+Cached live `gpt-oss-120b` result (committed in `evals/benchmark/results.json`;
+CI re-verifies its internal consistency and citation validity without a model
+call):
+
+| Measurement | Result |
+|---|---|
+| In-scope toxic pairs flagged (recall) | **8/8 (1.000)** |
+| False positives on benign near-misses | **0/8 (precision 1.000)** |
+| Hallucinated citations in surfaced findings | **0 (required 0)** |
+| Out-of-scope toxic pairs flagged | 0/4 — the prompt's documented scope boundary held |
+| Raw proposals citing unknown/non-effective entities | 0 of 8 (the citation gate had nothing to block in this run) |
+
+Honest limits: this is 20 synthetic scenarios and a single temperature-0 run,
+and each scenario agent holds only its labeled pair. It demonstrates the v0.1
+egress lens separates toxic pairs from engineered near-misses with zero
+fabricated evidence — it is not a real-world accuracy claim at fleet scale.
+The four out-of-scope families are the deterministic floor's territory today
+and the model tier's roadmap; a reviewer should read `0/4` as scope discipline,
+not as detection.
 
 ## 5. The four checks
 
