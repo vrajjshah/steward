@@ -13,3 +13,13 @@
   {% endfor %}
 </div>
 {% endif %}
+{% if finding.control_frameworks %}
+<div class="finding-context" aria-label="Control-framework context">
+  <span class="finding-context-title">Control frameworks <small>context, not certification</small></span>
+  {% for reference in finding.control_frameworks %}
+  <span class="context-link context-framework" title="{{ reference.relevance }}">
+    {{ reference.framework }} · {{ reference.control_id }} <small>{{ reference.control_name }}</small>
+  </span>
+  {% endfor %}
+</div>
+{% endif %}

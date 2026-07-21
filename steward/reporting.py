@@ -14,6 +14,7 @@ from collections.abc import Iterable, Mapping
 from datetime import UTC, datetime
 from typing import Any
 
+from steward.control_mapping import PROCESS_CONTROLS, control_framework_coverage
 from steward.incident_grounding import TOKEN_REPLAY_CONTEXT
 
 CONTROL_MAPPINGS: dict[str, str] = {
@@ -499,7 +500,45 @@ def _finding_public(finding: Any) -> dict[str, Any]:
         "real_world_incident": _external_references(
             raw.get("real_world_incident"), kind="incident"
         ),
+        "control_frameworks": _control_framework_references(raw.get("control_frameworks")),
+        "risk_score": raw.get("risk_score"),
+        "risk_factors": {
+            str(name): int(points)
+            for name, points in (as_dict(raw.get("risk_factors")) or {}).items()
+            if isinstance(points, (int, float)) and not isinstance(points, bool)
+        }
+        if isinstance(raw.get("risk_factors"), Mapping)
+        else {},
     }
+
+
+def _control_framework_references(value: Any) -> list[dict[str, str]]:
+    """Select display-safe control references; tolerate their absence in old caches."""
+
+    raw_items = as_dict(value)
+    if not isinstance(raw_items, list):
+        return []
+    references: list[dict[str, str]] = []
+    seen: set[tuple[str, str]] = set()
+    for item in raw_items:
+        if not isinstance(item, Mapping):
+            continue
+        framework = str(item.get("framework", "")).strip()
+        control_id = str(item.get("control_id", "")).strip()
+        control_name = str(item.get("control_name", "")).strip()
+        relevance = _runtime_model_prose(item.get("relevance", "")).strip()
+        if not framework or not control_id or (framework, control_id) in seen:
+            continue
+        references.append(
+            {
+                "framework": framework,
+                "control_id": control_id,
+                "control_name": control_name,
+                "relevance": relevance,
+            }
+        )
+        seen.add((framework, control_id))
+    return references
 
 
 def _external_references(value: Any, *, kind: str) -> list[dict[str, str]]:
@@ -709,6 +748,14 @@ def build_fleet_audit_report(
             "review_status": packet["summary"]["pending_reviews"],
         },
         "control_mapping": controls,
+        # Structured, versioned framework references aggregated across the
+        # verified findings — auditor context, not a compliance certification.
+        "control_framework_coverage": control_framework_coverage(public_findings),
+        # Controls the governance process itself (signed ledger, certification
+        # queue) speaks to, independent of any individual finding.
+        "governance_process_controls": [
+            reference.model_dump(mode="json") for reference in PROCESS_CONTROLS
+        ],
         "findings": public_findings,
         "delegation_edges": delegation_edges,
         "certification_packet": packet,
@@ -763,6 +810,41 @@ def render_markdown_report(report: Mapping[str, Any]) -> str:
             f"| {control.get('label', '')} | {control.get('control_mapping', '')} | "
             f"{control.get('findings', 0)} | {control.get('highest_severity', 'clear')} |"
         )
+
+    coverage = report.get("control_framework_coverage", [])
+    if coverage:
+        lines.extend(
+            [
+                "",
+                "## Control-framework coverage",
+                "",
+                "Findings mapped to published control frameworks (versions cited). "
+                "This matrix is auditor context — it is not a compliance certification.",
+                "",
+                "| Framework | Control | Name | Findings | Signals |",
+                "| --- | --- | --- | ---: | --- |",
+            ]
+        )
+        for framework_row in coverage:
+            for control in framework_row.get("controls", []):
+                lines.append(
+                    f"| {framework_row.get('framework', '')} | {control.get('control_id', '')} | "
+                    f"{control.get('control_name', '')} | {control.get('findings', 0)} | "
+                    f"{', '.join(control.get('check_types', []))} |"
+                )
+        process_controls = report.get("governance_process_controls", [])
+        if process_controls:
+            lines.extend(
+                [
+                    "",
+                    "The governance process itself (signed audit ledger, certification queue) speaks to: "
+                    + "; ".join(
+                        f"{item.get('framework', '')} {item.get('control_id', '')} ({item.get('control_name', '')})"
+                        for item in process_controls
+                    )
+                    + ".",
+                ]
+            )
 
     enrichment = report.get("llm_enrichment", {})
     if enrichment:
@@ -843,6 +925,14 @@ def render_markdown_report(report: Mapping[str, Any]) -> str:
             ]
         )
         lines.extend(f"- {line}" for line in finding_evidence_lines(finding))
+        framework_references = finding.get("control_frameworks", [])
+        if framework_references:
+            lines.extend(["", "**Control-framework context (not a certification):**"])
+            lines.extend(
+                f"- {reference.get('framework', '')} {reference.get('control_id', '')} "
+                f"({reference.get('control_name', '')}) — {reference.get('relevance', '')}"
+                for reference in framework_references
+            )
         owasp_references = finding.get("owasp_mcp", [])
         incident_references = finding.get("real_world_incident", [])
         if owasp_references or incident_references:

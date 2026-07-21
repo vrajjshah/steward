@@ -107,6 +107,36 @@
   </div>
 </section>
 
+{% if report.control_framework_coverage %}
+<section class="report-section" aria-labelledby="framework-coverage-title">
+  <div class="section-heading compact-heading"><div><div class="eyebrow">Framework coverage</div><h2 id="framework-coverage-title">Control-framework coverage matrix</h2></div></div>
+  <p class="report-prose">Findings mapped to published control frameworks (versions cited). This matrix is auditor context — it is not a compliance certification.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Framework</th><th>Control</th><th>Name</th><th>Findings</th><th>Signals</th></tr></thead>
+      <tbody>
+      {% for framework_row in report.control_framework_coverage %}
+        {% for control in framework_row.controls %}
+        <tr>
+          <td>{{ framework_row.framework }}</td>
+          <td>{{ control.control_id }}</td>
+          <td>{{ control.control_name }}</td>
+          <td>{{ control.findings }}</td>
+          <td>{{ control.check_types | join(", ") }}</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if report.governance_process_controls %}
+  <p class="report-prose">The governance process itself (signed audit ledger, certification queue) speaks to:
+    {% for item in report.governance_process_controls %}{{ item.framework }} {{ item.control_id }} ({{ item.control_name }}){{ "; " if not loop.last else "." }}{% endfor %}
+  </p>
+  {% endif %}
+</section>
+{% endif %}
+
 <section class="report-section" aria-labelledby="audit-findings-title">
   <div class="section-heading compact-heading"><div><div class="eyebrow">Verified findings</div><h2 id="audit-findings-title">Evidence trail and remediation</h2></div></div>
   <div class="report-findings">

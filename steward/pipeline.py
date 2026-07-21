@@ -14,6 +14,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
+from steward.control_mapping import annotate_findings_with_control_frameworks
 from steward.findings import analyze_fleet as deterministic_analyze_fleet
 from steward.findings import filter_valid_findings, verify_finding_evidence
 from steward.graph import EffectiveAccessGraph, delegation_edge_id
@@ -860,7 +861,10 @@ def analyze_fleet(
         return result
     result = _enrich(result, llm or BedrockLLM())
     # LLM-generalized findings are generated after the deterministic tier, so
-    # apply the same deterministic external-context mapping at the final
-    # public pipeline boundary. This never changes whether a finding exists.
-    result.findings = ground_findings_in_real_world_context(result.findings)
+    # apply the same deterministic external-context and control-framework
+    # mappings at the final public pipeline boundary. This never changes
+    # whether a finding exists.
+    result.findings = annotate_findings_with_control_frameworks(
+        ground_findings_in_real_world_context(result.findings)
+    )
     return result

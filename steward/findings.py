@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
+from .control_mapping import annotate_findings_with_control_frameworks
 from .graph import AccessProvenance, EffectiveAccessGraph, delegation_edge_id
 from .incident_grounding import ground_findings_in_real_world_context
 from .loaders import validate_inventory
@@ -399,11 +400,13 @@ def run_deterministic_checks(
         *find_escalation_paths(fleet, graph),
         *find_orphans(fleet),
     ]
-    # External incident annotations are deterministic context applied only to
-    # graph-verified findings. They never create a signal or relax the
-    # citation gate above.
-    return ground_findings_in_real_world_context(
-        filter_valid_findings(findings, fleet, graph=graph, tools=tools)
+    # External incident and control-framework annotations are deterministic
+    # context applied only to graph-verified findings. They never create a
+    # signal or relax the citation gate above.
+    return annotate_findings_with_control_frameworks(
+        ground_findings_in_real_world_context(
+            filter_valid_findings(findings, fleet, graph=graph, tools=tools)
+        )
     )
 
 

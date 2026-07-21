@@ -175,6 +175,26 @@ class OwaspMcpReference(StewardModel):
         return _require_nonempty_identifier(value)
 
 
+class ControlFrameworkReference(StewardModel):
+    """A named control in a published governance framework relevant to a finding.
+
+    This is auditor-facing context that speaks control language — it is not a
+    compliance certification and never substitutes for the entity-level graph
+    evidence a finding must carry.  The ``framework`` string includes the
+    framework version so the mapping stays honest as frameworks revise.
+    """
+
+    framework: str
+    control_id: str
+    control_name: str
+    relevance: str
+
+    @field_validator("framework", "control_id", "control_name", "relevance")
+    @classmethod
+    def required_reference_text_is_nonempty(cls, value: str) -> str:
+        return _require_nonempty_identifier(value)
+
+
 class RealWorldIncident(StewardModel):
     """A source-linked external incident or documented attack scenario."""
 
@@ -214,6 +234,15 @@ class Finding(StewardModel):
     # still be fully valid if its evidence verifies against the loaded fleet.
     owasp_mcp: list[OwaspMcpReference] = Field(default_factory=list)
     real_world_incident: list[RealWorldIncident] = Field(default_factory=list)
+    # Auditor-facing control-framework context (NIST 800-53, SOC 2, ISO 27001,
+    # SOX ITGC, EU AI Act), populated deterministically by check type. Context
+    # in the auditor's language — not a compliance certification.
+    control_frameworks: list[ControlFrameworkReference] = Field(default_factory=list)
+    # Deterministic composite risk score (0-100) and its factor breakdown,
+    # populated by steward.scoring after citation verification. Reproducible:
+    # identical input yields identical scores and ranking.
+    risk_score: int | None = None
+    risk_factors: dict[str, int] = Field(default_factory=dict)
 
     @field_validator(
         "id", "agent_id", "title", "business_risk", "recommended_action", "control_mapping"
