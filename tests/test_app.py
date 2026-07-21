@@ -152,8 +152,10 @@ def test_committed_demo_cache_keeps_deterministic_and_llm_generalized_sources() 
     analysis = client.post("/api/analyze")
     assert analysis.status_code == 200
     enrichment = analysis.json()["llm_enrichment"]
-    assert enrichment["state"] == "partial"
-    assert enrichment["label"] == "Enrichment partial"
+    # The committed cache records a complete live enrichment: every tool
+    # classified and Needed inference available for every agent.
+    assert enrichment["state"] == "recorded"
+    assert enrichment["label"] == "Recorded enrichment result"
     assert enrichment["mode"] == "cached live OpenAI gpt-oss-120b Bedrock result"
     assert {operation["key"] for operation in enrichment["operations"]} == {
         "tool_classification",
@@ -167,14 +169,14 @@ def test_committed_demo_cache_keeps_deterministic_and_llm_generalized_sources() 
     assert "Then: AI-generalized path" in dashboard.text
     assert sales["title"] in dashboard.text
     assert f'/risk-cards/{sales["agent_id"]}' in dashboard.text
-    assert "Enrichment partial" in dashboard.text
+    assert "Recorded enrichment result" in dashboard.text
     assert "GPT-5.6 proposed this capability pair" not in dashboard.text
     assert "external" in sales["business_risk"].lower()
 
     markdown = client.get("/api/report.md")
     assert markdown.status_code == 200
     assert "## Optional model enrichment" in markdown.text
-    assert "Enrichment partial" in markdown.text
+    assert "Recorded enrichment result" in markdown.text
 
 
 def test_partial_enrichment_is_explicit_in_api_report_and_dashboard(tmp_path) -> None:

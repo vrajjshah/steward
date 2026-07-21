@@ -40,6 +40,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   deterministic gate remains 1.000.
 
 ### Fixed
+- **Needed-capability inference now runs in bounded agent batches** (six agents per
+  request, mirroring tool-classification recovery). The whole-fleet request had
+  outgrown the structured-output token budget when the fleet expanded to 30 agents,
+  so Needed inference silently failed and the dashboard's Granted vs. Needed view
+  was empty on the flagship fleet. The regenerated demo cache now records Needed
+  inference for all 30 agents; a batch failure degrades to a partial result instead
+  of erasing the signal.
 - The high-entropy secret heuristic no longer masks long snake/kebab-case word
   identifiers (e.g. `read_financial_statements`) in outbound LLM payloads. Two
   synthetic-fleet tools were previously unclassifiable because their ids arrived

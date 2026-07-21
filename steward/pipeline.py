@@ -51,6 +51,7 @@ def _model_available(llm: BedrockLLM, tier: Literal["sol", "terra", "luna"]) -> 
 TOOL_CLASSIFICATION_BATCH_SIZE = 6
 TOOL_CLASSIFICATION_BATCH_MAX_TOKENS = 1_800
 TOOL_CLASSIFICATION_SINGLE_MAX_TOKENS = 700
+NEEDED_ACCESS_BATCH_SIZE = 6
 
 
 @dataclass
@@ -236,6 +237,46 @@ def _parse_needed(
             # review card can show all effective grants as a gap.
             needed_tool_ids[agent_id] = list(dict.fromkeys(ids))
     return needed, needed_tool_ids
+
+
+def _infer_needed_access_with_recovery(
+    llm: BedrockLLM,
+    result: AnalysisResult,
+    capabilities: Mapping[str, str],
+) -> tuple[dict[str, list[str]], dict[str, list[str]], list[list[str]]]:
+    """Infer Needed in bounded agent batches so one failure cannot erase all.
+
+    A whole-fleet request grew past the response budget as the fleet expanded
+    (30 agents of capabilities + rationale exceed the structured-output token
+    cap), which silently produced zero Needed inference. Batching mirrors the
+    tool-classification recovery pattern; a parsed entry only counts for an
+    agent actually in the requested batch, so an echoed foreign id cannot
+    smuggle in an inference.
+    """
+
+    agent_payload, capability_catalog = _needed_payload(result, capabilities)
+    needed: dict[str, list[str]] = {}
+    needed_tool_ids: dict[str, list[str]] = {}
+    failed_batches: list[list[str]] = []
+    for batch in _chunked(agent_payload, NEEDED_ACCESS_BATCH_SIZE):
+        batch_agent_ids = {str(entry["agent_id"]) for entry in batch}
+        try:
+            parsed = infer_needed_access(llm, list(batch), capability_catalog)
+        except Exception:
+            failed_batches.append(sorted(batch_agent_ids))
+            continue
+        batch_needed, batch_tool_ids = _parse_needed(parsed, result)
+        needed.update(
+            {agent_id: value for agent_id, value in batch_needed.items() if agent_id in batch_agent_ids}
+        )
+        needed_tool_ids.update(
+            {
+                agent_id: value
+                for agent_id, value in batch_tool_ids.items()
+                if agent_id in batch_agent_ids
+            }
+        )
+    return needed, needed_tool_ids, failed_batches
 
 
 def _evidence_for_effective_tool(
@@ -620,9 +661,9 @@ def _enrich(result: AnalysisResult, llm: BedrockLLM) -> AnalysisResult:
 
         if classification.capabilities:
             try:
-                agent_payload, capability_catalog = _needed_payload(result, classification.capabilities)
-                parsed = infer_needed_access(llm, agent_payload, capability_catalog)
-                needed, needed_tool_ids = _parse_needed(parsed, result)
+                needed, needed_tool_ids, failed_batches = _infer_needed_access_with_recovery(
+                    llm, result, classification.capabilities
+                )
                 result.needed_capabilities = needed
                 result.granted_vs_needed_gaps = {
                     agent_id: sorted(
@@ -640,10 +681,20 @@ def _enrich(result: AnalysisResult, llm: BedrockLLM) -> AnalysisResult:
                             ),
                         }
                     )
+                unavailable_agents = sorted(
+                    agent_id for batch in failed_batches for agent_id in batch
+                )
+                if failed_batches and not needed and not needed_tool_ids:
+                    status = "unavailable"
+                elif failed_batches:
+                    status = "partial"
+                else:
+                    status = "ok"
                 metadata["operations"]["needed_access"] = {
-                    "status": "ok",
+                    "status": status,
                     "agents_with_inference": len(needed),
                     "agents_with_concrete_gap": len(needed_tool_ids),
+                    "agents_unavailable": unavailable_agents,
                 }
             except Exception as exc:
                 metadata["operations"]["needed_access"] = {

@@ -667,7 +667,7 @@
    "check_type": "sod",
    "severity": "high",
    "title": "Self-granting privilege path",
-   "business_risk": "The AccessBot agent holds both the ability to request access and the direct grant to approve access, creating a self\u2011granting privilege path. This violates segregation of duties and enables the agent (or any user invoking it) to obtain unauthorized privileges across the applications it manages, increasing the likelihood of data exposure, compliance breaches, and potential insider misuse.",
+   "business_risk": "The agent can both request and directly grant application access, creating a self\u2011granting privilege path that bypasses segregation of duties. This enables unauthorized or excessive access to be provisioned without independent review, exposing all applications the agent can request to potential confidentiality, integrity, and availability breaches.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -685,7 +685,7 @@
      "detail": "AccessBot has a direct grant of request_access."
     }
    ],
-   "recommended_action": "Separate the request and grant functions by removing the direct grant_access permission from AccessBot, enforce an independent approval workflow for all access grants, and apply least\u2011privilege controls with continuous monitoring of any access changes performed by the agent.",
+   "recommended_action": "Separate the request and grant functions by revoking the agent's direct grant of the grant_access tool, enforce an independent approval workflow for access grants, and apply least\u2011privilege controls to the agent.",
    "control_mapping": "Identity governance \u2014 segregation of duties (access request versus access grant)",
    "owasp_mcp": [],
    "real_world_incident": []
@@ -698,7 +698,7 @@
    "check_type": "sod",
    "severity": "critical",
    "title": "Critical fraud path: create vendor and approve payment",
-   "business_risk": "This agent can create a payee in vendor master data and authorize a payment to that payee. Combining initiation and approval creates a self-dealing path that can bypass independent finance review.",
+   "business_risk": "InvoiceBot possesses both the create_vendor and approve_payment tool grants, giving a single automated agent the ability to add new vendors and subsequently authorize payments to those vendors. This concentration of authority creates a direct fraud pathway where a malicious or compromised bot could generate fictitious vendor records and approve disbursements without independent oversight, exposing the organization to unauthorized financial loss and SOX ITGC compliance violations.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -716,7 +716,7 @@
      "detail": "InvoiceBot has a direct grant of create_vendor."
     }
    ],
-   "recommended_action": "Revoke either create_vendor or approve_payment from this agent and require an independently owned approval step for vendor-related disbursements.",
+   "recommended_action": "Implement segregation of duties by revoking one of the conflicting grants from InvoiceBot (e.g., remove approve_payment or create_vendor), introduce a separate approval workflow that requires an independent human reviewer, and enforce monitoring of vendor creation and payment approval activities.",
    "control_mapping": "SOX ITGC \u2014 segregation of duties (vendor creation versus payment approval)",
    "owasp_mcp": [],
    "real_world_incident": []
@@ -729,7 +729,7 @@
    "check_type": "sod",
    "severity": "critical",
    "title": "Critical ghost-employee fraud path",
-   "business_risk": "PayrollBot possesses both the add_employee and run_payroll privileges, creating a single point that can create new employee records and immediately execute payroll. If the agent is compromised or misused, it could generate fictitious (ghost) employees and trigger unauthorized payments, leading to financial loss, misstated payroll expenses, and a breach of SOX ITGC segregation\u2011of\u2011duties requirements.",
+   "business_risk": "PayrollBot possesses both the add_employee and run_payroll privileges, enabling it to create employee records and immediately trigger payroll payouts. This single point of control creates a critical ghost\u2011employee fraud pathway, exposing the organization to unauthorized disbursements, financial loss, and SOX ITGC segregation\u2011of\u2011duties violations.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -747,7 +747,7 @@
      "detail": "PayrollBot has a direct grant of run_payroll."
     }
    ],
-   "recommended_action": "Separate the employee\u2011setup and payroll\u2011execution functions into distinct agents or roles, revoke the direct grants that combine these capabilities, and implement an approval workflow that requires independent review before any new employee can be paid. Conduct a retrospective audit of recent payroll runs for unauthorized entries.",
+   "recommended_action": "Revoke one of the conflicting privileges from PayrollBot to enforce segregation of duties (e.g., restrict add_employee to a separate provisioning system). Implement dual\u2011approval controls for payroll execution, conduct periodic access reviews, and monitor for anomalous employee\u2011creation and payroll\u2011run activity.",
    "control_mapping": "SOX ITGC \u2014 segregation of duties (employee setup versus payroll execution)",
    "owasp_mcp": [],
    "real_world_incident": []
@@ -760,7 +760,7 @@
    "check_type": "sod",
    "severity": "critical",
    "title": "Critical data-exfiltration path",
-   "business_risk": "SupportBot possesses both read access to customer PII and the ability to send external email, creating a direct path for unauthorized disclosure of all customer personal data it can retrieve. If exploited, the agent could exfiltrate sensitive customer information to external recipients, resulting in regulatory breach, reputational damage, and potential financial penalties.",
+   "business_risk": "SupportBot possesses both read access to customer PII and the ability to send external email, creating a direct path for unauthorized disclosure of personally identifiable information. If exploited, this could lead to regulatory violations, loss of customer trust, reputational harm, and potential financial penalties.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -778,7 +778,7 @@
      "detail": "SupportBot has a direct grant of send_external_email."
     }
    ],
-   "recommended_action": "Revoke the direct grant of read_customer_pii from SupportBot or isolate it behind a data-masking layer; remove or tightly control the send_external_email capability; implement separation of duties and monitoring to ensure any external egress of PII is authorized and logged.",
+   "recommended_action": "Restrict SupportBot's permissions to the minimum required for its case\u2011resolution function. Remove the direct grant to read_customer_pii or isolate it behind a controlled data\u2011access service, and limit or mediate the send_external_email capability with approval workflows and outbound email monitoring. Implement segregation of duties and continuous audit of privileged tool assignments.",
    "control_mapping": "Data protection \u2014 least privilege and controlled external egress",
    "owasp_mcp": [
     {
@@ -817,7 +817,7 @@
    "check_type": "over_privilege",
    "severity": "high",
    "title": "Unused standing access: 2 direct grants",
-   "business_risk": "If ReportBot\u2019s credentials are compromised, an attacker could leverage its unused direct grants to delete records or export data, leading to potential data loss or unauthorized disclosure that is not mitigated by current operational controls.",
+   "business_risk": "ReportBot holds standing privileges to delete records and export data that are not required for its stated function of reading analytics and generating weekly reports. If the agent or its host environment were compromised, an attacker could leverage the unused delete_records grant to erase operational data or the export_data grant to exfiltrate sensitive analytics, potentially causing data loss, regulatory non\u2011compliance, and disruption of reporting processes.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -835,7 +835,7 @@
      "detail": "ReportBot has a direct grant of export_data."
     }
    ],
-   "recommended_action": "Revoke the unused delete_records and export_data grants from ReportBot and re\u2011certify its access to align with the principle of least privilege.",
+   "recommended_action": "Revoke the unused delete_records and export_data grants from ReportBot, re\u2011align its permissions with the principle of least privilege, and implement periodic access certification to ensure granted rights match actual usage.",
    "control_mapping": "Least privilege \u2014 access certification using granted versus used access",
    "owasp_mcp": [],
    "real_world_incident": []
@@ -884,7 +884,7 @@
    "check_type": "escalation",
    "severity": "critical",
    "title": "Delegated payment-approval blast radius",
-   "business_risk": "Compromise of ExecBriefingBot grants an attacker indirect access to the approve_payment tool via the delegation chain (ExecBriefingBot \u2192 chief_of_staff_bot \u2192 finance_bot). This expands the blast radius from a reading\u2011material bot to full payment\u2011approval capability, exposing the organization to unauthorized disbursements and potential financial loss.",
+   "business_risk": "Compromise of ExecBriefingBot (exec_briefing_bot) provides an indirect path to the approve_payment tool via chief_of_staff_bot and finance_bot, enabling unauthorized payment approvals and potential financial loss.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -912,7 +912,7 @@
      "detail": "ExecBriefingBot effectively reaches approve_payment through exec_briefing_bot -> chief_of_staff_bot -> finance_bot."
     }
    ],
-   "recommended_action": "Restrict delegation paths so that ExecBriefingBot cannot reach finance_bot or approve_payment, enforce least\u2011privilege principles, conduct an access review of all delegation edges, and implement monitoring/alerting for any payment\u2011approval actions initiated through delegated agents.",
+   "recommended_action": "Restrict delegation chains for payment\u2011related tools, enforce least\u2011privilege assignments, and conduct an access\u2011review to ensure only authorized agents hold direct grant to approve_payment. Consider adding approval workflows that require multi\u2011person sign\u2011off before payment execution.",
    "control_mapping": "Identity governance \u2014 effective access review and least privilege",
    "owasp_mcp": [],
    "real_world_incident": []
@@ -925,7 +925,7 @@
    "check_type": "escalation",
    "severity": "critical",
    "title": "Delegated payment-approval blast radius",
-   "business_risk": "Because the agent described can delegate to another agent that directly holds the grant to the payment\u2011approval tool, any compromise or misuse of the delegating agent expands the effective access to approve payments. The practical blast radius therefore includes all payment\u2011approval actions that could be executed through the delegation chain, exposing the organization to unauthorized or fraudulent payment approvals.",
+   "business_risk": "Because SummaryBot can delegate to finance_bot, which directly holds the approve_payment grant, any request processed by SummaryBot can be escalated to execute payment approvals. This creates a privilege\u2011escalation blast radius that extends the payment\u2011approval capability beyond its intended owners, exposing the organization to unauthorized disbursements, financial loss, and compliance violations.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -948,7 +948,7 @@
      "detail": "SummaryBot effectively reaches approve_payment through summary_bot -> finance_bot."
     }
    ],
-   "recommended_action": "Conduct an immediate access review of the delegation relationship, enforce least\u2011privilege principles by limiting the delegating agent's ability to reach the payment\u2011approval tool, and implement monitoring or approval controls for any delegated payment actions.",
+   "recommended_action": "Restrict or remove the delegation edge from SummaryBot to finance_bot, enforce least\u2011privilege principles for both agents, and implement an access\u2011review process that validates any delegation paths to high\u2011risk tools such as approve_payment. Add monitoring and alerts for any payment\u2011approval actions initiated via delegated agents.",
    "control_mapping": "Identity governance \u2014 effective access review and least privilege",
    "owasp_mcp": [
     {
@@ -975,7 +975,7 @@
    "check_type": "orphan",
    "severity": "high",
    "title": "Ownerless agent has no accountable reviewer",
-   "business_risk": "Without an assigned owner, the LegacyBot agent lacks an accountable reviewer for access certification, creating a gap in governance that could allow unmonitored or unauthorized use of the agent's capabilities. This exposes the organization to compliance violations, potential data exposure, and inability to enforce corrective actions if the agent is misused.",
+   "business_risk": "The LegacyBot agent operates without an assigned owner, meaning no accountable reviewer can certify its access or monitor its activity. Any actions the agent takes against the retired product archive\u2014such as data retrieval, modification, or deletion\u2014occur without oversight, exposing the organization to unauthorized data exposure, integrity loss, and compliance violations.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -983,7 +983,7 @@
      "detail": "owner is null in the fleet inventory"
     }
    ],
-   "recommended_action": "Immediately assign a qualified owner to the LegacyBot agent, update the fleet inventory to reflect this ownership, and complete the required access certification. Implement controls to prevent orphan agents in the future.",
+   "recommended_action": "Assign a qualified owner to LegacyBot and enroll the agent in the access certification process to ensure accountable review and ongoing monitoring of its permissions and activities.",
    "control_mapping": "Accountability \u2014 named owner required for agent access certification",
    "owasp_mcp": [],
    "real_world_incident": []
@@ -996,7 +996,7 @@
    "check_type": "sod",
    "severity": "high",
    "title": "AI-generalized toxic capability combination: Read CRM account context + Send email outside the company",
-   "business_risk": "The SalesBot agent possesses both read access to CRM account context and the ability to send external email. This combination enables the agent to extract customer data from the CRM and transmit it outside the organization, creating a direct pathway for data leakage, unauthorized outreach, regulatory non\u2011compliance, and reputational harm.",
+   "business_risk": "The SalesBot agent can read CRM account context and directly send emails to external recipients. This combination enables the potential exfiltration of customer data and unauthorized personalized outreach, creating a risk of data leakage, regulatory non\u2011compliance, and reputational harm if CRM information is disclosed outside the organization.",
    "evidence": [
     {
      "entity_type": "agent",
@@ -1014,7 +1014,7 @@
      "detail": "SalesBot has a direct grant of send_external_email."
     }
    ],
-   "recommended_action": "Implement segregation of duties by revoking either the read_crm or send_external_email grant from the SalesBot agent, enforce least\u2011privilege principles, and introduce monitoring/approval controls for any external email activity that involves CRM data.",
+   "recommended_action": "Implement segregation of duties by removing the direct grant for external email from agents with CRM read access, require an approval workflow for outbound communications, and monitor outbound email logs for anomalous activity.",
    "control_mapping": "Identity governance \u2014 GPT-identified segregation-of-duties candidate",
    "owasp_mcp": [
     {
@@ -1597,8 +1597,12 @@
      "access_bot"
     ]
    },
-   "needed_capabilities": [],
-   "granted_vs_needed_gap": []
+   "needed_capabilities": [
+    "submits an application access request for an employee"
+   ],
+   "granted_vs_needed_gap": [
+    "grant_access"
+   ]
   },
   "bi_bot": {
    "agent_id": "bi_bot",
@@ -1623,8 +1627,12 @@
      "bi_bot"
     ]
    },
-   "needed_capabilities": [],
-   "granted_vs_needed_gap": []
+   "needed_capabilities": [
+    "executes read-only queries on analytics database"
+   ],
+   "granted_vs_needed_gap": [
+    "read_analytics"
+   ]
   },
   "chief_of_staff_bot": {
    "agent_id": "chief_of_staff_bot",
@@ -1654,8 +1662,14 @@
      "chief_of_staff_bot"
     ]
    },
-   "needed_capabilities": [],
-   "granted_vs_needed_gap": []
+   "needed_capabilities": [
+    "searches and reads approved internal knowledge articles",
+    "sends reminder messages through the internal messaging system to employees"
+   ],
+   "granted_vs_needed_gap": [
+    "approve_payment",
+    "read_calendar"
+   ]
   },
   "compliance_bot": {
    "agent_id": "compliance_bot",
@@ -1680,7 +1694,10 @@
      "compliance_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads published company policy documents",
+    "opens audit follow\u2011up ticket for audit reviewer"
+   ],
    "granted_vs_needed_gap": []
   },
   "contract_bot": {
@@ -1706,7 +1723,10 @@
      "contract_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads approved contract templates and prior agreements",
+    "drafts contract language for legal review"
+   ],
    "granted_vs_needed_gap": []
   },
   "customer_success_bot": {
@@ -1732,7 +1752,10 @@
      "customer_success_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "searches and reads approved internal knowledge articles",
+    "sends reminder messages through the internal messaging system to employees"
+   ],
    "granted_vs_needed_gap": []
   },
   "data_quality_bot": {
@@ -1758,7 +1781,10 @@
      "data_quality_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads approved analytics extracts for review",
+    "validates analytics extract against quality rules"
+   ],
    "granted_vs_needed_gap": []
   },
   "engineering_bot": {
@@ -1784,7 +1810,10 @@
      "engineering_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads source code files and issue context from the engineering repository",
+    "opens engineering work item for maintainer"
+   ],
    "granted_vs_needed_gap": []
   },
   "exec_briefing_bot": {
@@ -1815,8 +1844,14 @@
      "exec_briefing_bot"
     ]
    },
-   "needed_capabilities": [],
-   "granted_vs_needed_gap": []
+   "needed_capabilities": [
+    "searches and reads approved internal knowledge articles",
+    "sends reminder messages through the internal messaging system to employees"
+   ],
+   "granted_vs_needed_gap": [
+    "approve_payment",
+    "read_calendar"
+   ]
   },
   "facilities_bot": {
    "agent_id": "facilities_bot",
@@ -1841,7 +1876,10 @@
      "facilities_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "creates travel request for manager review",
+    "reads published company policy documents"
+   ],
    "granted_vs_needed_gap": []
   },
   "finance_bot": {
@@ -1861,7 +1899,9 @@
      "finance_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "authorizes queued payment for release"
+   ],
    "granted_vs_needed_gap": []
   },
   "inventory_bot": {
@@ -1887,7 +1927,10 @@
      "inventory_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads current warehouse inventory and stock counts",
+    "updates warehouse stock count records"
+   ],
    "granted_vs_needed_gap": []
   },
   "invoice_bot": {
@@ -1913,7 +1956,10 @@
      "invoice_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "adds supplier or payee to vendor master",
+    "authorizes queued payment for release"
+   ],
    "granted_vs_needed_gap": []
   },
   "knowledge_bot": {
@@ -1933,7 +1979,9 @@
      "knowledge_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "searches and reads approved internal knowledge articles"
+   ],
    "granted_vs_needed_gap": []
   },
   "legacy_bot": {
@@ -1953,7 +2001,9 @@
      "legacy_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads documents from retired product archive"
+   ],
    "granted_vs_needed_gap": []
   },
   "marketing_bot": {
@@ -1985,8 +2035,13 @@
      "marketing_bot"
     ]
    },
-   "needed_capabilities": [],
-   "granted_vs_needed_gap": []
+   "needed_capabilities": [
+    "searches publicly available web pages for information",
+    "creates concise summary of supplied document"
+   ],
+   "granted_vs_needed_gap": [
+    "read_knowledge_base"
+   ]
   },
   "monitoring_bot": {
    "agent_id": "monitoring_bot",
@@ -2011,7 +2066,10 @@
      "monitoring_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads current service health and performance metrics from the monitoring system",
+    "creates incident tickets in incident management system for the on-call team"
+   ],
    "granted_vs_needed_gap": []
   },
   "onboarding_bot": {
@@ -2037,7 +2095,10 @@
      "onboarding_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "creates onboarding checklist for new hire",
+    "sends reminder messages through the internal messaging system to employees"
+   ],
    "granted_vs_needed_gap": []
   },
   "payroll_bot": {
@@ -2063,7 +2124,10 @@
      "payroll_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "creates employee record in people system",
+    "starts payroll calculation and payment run for employees"
+   ],
    "granted_vs_needed_gap": []
   },
   "procurement_bot": {
@@ -2089,7 +2153,10 @@
      "procurement_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads approved contract templates and prior agreements",
+    "opens audit follow\u2011up ticket for audit reviewer"
+   ],
    "granted_vs_needed_gap": []
   },
   "recruiting_bot": {
@@ -2115,7 +2182,10 @@
      "recruiting_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads internal team calendar availability",
+    "creates internal meeting event on selected calendars"
+   ],
    "granted_vs_needed_gap": []
   },
   "report_bot": {
@@ -2148,8 +2218,14 @@
      "report_bot"
     ]
    },
-   "needed_capabilities": [],
-   "granted_vs_needed_gap": []
+   "needed_capabilities": [
+    "reads approved analytics extracts for review",
+    "exports analytics data to files"
+   ],
+   "granted_vs_needed_gap": [
+    "delete_records",
+    "read_db"
+   ]
   },
   "research_bot": {
    "agent_id": "research_bot",
@@ -2174,7 +2250,10 @@
      "research_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "searches publicly available web pages for information",
+    "creates concise summary of supplied document"
+   ],
    "granted_vs_needed_gap": []
   },
   "sales_assist_bot": {
@@ -2200,7 +2279,10 @@
      "sales_assist_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads sales account notes and opportunity context from CRM",
+    "drafts customer email for sales representative review"
+   ],
    "granted_vs_needed_gap": []
   },
   "sales_bot": {
@@ -2226,7 +2308,11 @@
      "sales_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads sales account notes and opportunity context from CRM",
+    "drafts customer email for sales representative review",
+    "sends email messages to external recipients"
+   ],
    "granted_vs_needed_gap": []
   },
   "scheduler_bot": {
@@ -2252,7 +2338,10 @@
      "scheduler_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads internal team calendar availability",
+    "creates internal meeting event on selected calendars"
+   ],
    "granted_vs_needed_gap": []
   },
   "secops_bot": {
@@ -2284,7 +2373,11 @@
      "secops_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads current service health and performance metrics from the monitoring system",
+    "reads published company policy documents",
+    "creates incident tickets in incident management system for the on\u2011call team"
+   ],
    "granted_vs_needed_gap": []
   },
   "summary_bot": {
@@ -2309,8 +2402,13 @@
      "summary_bot"
     ]
    },
-   "needed_capabilities": [],
-   "granted_vs_needed_gap": []
+   "needed_capabilities": [
+    "searches and reads approved internal knowledge articles",
+    "creates concise summary of supplied document"
+   ],
+   "granted_vs_needed_gap": [
+    "approve_payment"
+   ]
   },
   "support_bot": {
    "agent_id": "support_bot",
@@ -2335,7 +2433,10 @@
      "support_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "reads customer contact and account information for support cases",
+    "sends email messages to external recipients"
+   ],
    "granted_vs_needed_gap": []
   },
   "travel_bot": {
@@ -2355,19 +2456,20 @@
      "travel_bot"
     ]
    },
-   "needed_capabilities": [],
+   "needed_capabilities": [
+    "creates travel request for manager review"
+   ],
    "granted_vs_needed_gap": []
   }
  },
  "tool_capabilities": {
-  "add_employee": "creates employee records in the people system",
-  "approve_payment": "authorizes queued payments for release",
-  "create_audit_ticket": "opens audit follow\u2011up tickets for reviewers",
-  "create_calendar_event": "creates internal meeting events on selected calendars",
-  "create_incident_ticket": "opens incident tickets for the on\u2011call team",
-  "create_issue": "opens engineering work items for maintainers",
+  "add_employee": "creates employee record in people system",
+  "approve_payment": "authorizes queued payment for release",
+  "create_audit_ticket": "opens audit follow\u2011up ticket for audit reviewer",
+  "create_calendar_event": "creates internal meeting event on selected calendars",
+  "create_issue": "opens engineering work item for maintainer",
   "create_onboarding_checklist": "creates onboarding checklist for new hire",
-  "create_travel_request": "creates travel request for manager approval",
+  "create_travel_request": "creates travel request for manager review",
   "create_vendor": "adds supplier or payee to vendor master",
   "delete_records": "deletes selected records from analytics database",
   "draft_contract": "drafts contract language for legal review",
@@ -2384,26 +2486,194 @@
   "read_inventory": "reads current warehouse inventory and stock counts",
   "read_knowledge_base": "searches and reads approved internal knowledge articles",
   "read_policy_library": "reads published company policy documents",
-  "read_source_repository": "reads source code files and issue context from engineering repository",
-  "read_system_metrics": "reads service health and performance metrics from system monitoring",
-  "request_access": "submits employee access request for an application",
-  "run_payroll": "initiates payroll calculation and payment processing",
+  "read_source_repository": "reads source code files and issue context from the engineering repository",
+  "read_system_metrics": "reads current service health and performance metrics from the monitoring system",
+  "request_access": "submits an application access request for an employee",
+  "run_payroll": "starts payroll calculation and payment run for employees",
   "send_external_email": "sends email messages to external recipients",
-  "send_internal_message": "sends reminder messages via internal messaging system",
+  "send_internal_message": "sends reminder messages through the internal messaging system to employees",
   "summarize_document": "creates concise summary of supplied document",
-  "update_inventory": "updates warehouse inventory count records",
-  "validate_data": "validates analytics extract data against quality rules",
-  "web_search": "searches public web pages for information"
+  "update_inventory": "updates warehouse stock count records",
+  "validate_data": "validates analytics extract against quality rules",
+  "web_search": "searches publicly available web pages for information",
+  "create_incident_ticket": "creates incident tickets in incident management system for the on-call team"
  },
- "needed_capabilities": {},
- "granted_vs_needed_gaps": {},
+ "needed_capabilities": {
+  "access_bot": [
+   "submits an application access request for an employee"
+  ],
+  "bi_bot": [
+   "executes read-only queries on analytics database"
+  ],
+  "chief_of_staff_bot": [
+   "searches and reads approved internal knowledge articles",
+   "sends reminder messages through the internal messaging system to employees"
+  ],
+  "compliance_bot": [
+   "reads published company policy documents",
+   "opens audit follow\u2011up ticket for audit reviewer"
+  ],
+  "contract_bot": [
+   "reads approved contract templates and prior agreements",
+   "drafts contract language for legal review"
+  ],
+  "customer_success_bot": [
+   "searches and reads approved internal knowledge articles",
+   "sends reminder messages through the internal messaging system to employees"
+  ],
+  "data_quality_bot": [
+   "reads approved analytics extracts for review",
+   "validates analytics extract against quality rules"
+  ],
+  "engineering_bot": [
+   "reads source code files and issue context from the engineering repository",
+   "opens engineering work item for maintainer"
+  ],
+  "exec_briefing_bot": [
+   "searches and reads approved internal knowledge articles",
+   "sends reminder messages through the internal messaging system to employees"
+  ],
+  "facilities_bot": [
+   "creates travel request for manager review",
+   "reads published company policy documents"
+  ],
+  "finance_bot": [
+   "authorizes queued payment for release"
+  ],
+  "inventory_bot": [
+   "reads current warehouse inventory and stock counts",
+   "updates warehouse stock count records"
+  ],
+  "invoice_bot": [
+   "adds supplier or payee to vendor master",
+   "authorizes queued payment for release"
+  ],
+  "knowledge_bot": [
+   "searches and reads approved internal knowledge articles"
+  ],
+  "legacy_bot": [
+   "reads documents from retired product archive"
+  ],
+  "marketing_bot": [
+   "searches publicly available web pages for information",
+   "creates concise summary of supplied document"
+  ],
+  "monitoring_bot": [
+   "reads current service health and performance metrics from the monitoring system",
+   "creates incident tickets in incident management system for the on-call team"
+  ],
+  "onboarding_bot": [
+   "creates onboarding checklist for new hire",
+   "sends reminder messages through the internal messaging system to employees"
+  ],
+  "payroll_bot": [
+   "creates employee record in people system",
+   "starts payroll calculation and payment run for employees"
+  ],
+  "procurement_bot": [
+   "reads approved contract templates and prior agreements",
+   "opens audit follow\u2011up ticket for audit reviewer"
+  ],
+  "recruiting_bot": [
+   "reads internal team calendar availability",
+   "creates internal meeting event on selected calendars"
+  ],
+  "report_bot": [
+   "reads approved analytics extracts for review",
+   "exports analytics data to files"
+  ],
+  "research_bot": [
+   "searches publicly available web pages for information",
+   "creates concise summary of supplied document"
+  ],
+  "sales_assist_bot": [
+   "reads sales account notes and opportunity context from CRM",
+   "drafts customer email for sales representative review"
+  ],
+  "sales_bot": [
+   "reads sales account notes and opportunity context from CRM",
+   "drafts customer email for sales representative review",
+   "sends email messages to external recipients"
+  ],
+  "scheduler_bot": [
+   "reads internal team calendar availability",
+   "creates internal meeting event on selected calendars"
+  ],
+  "secops_bot": [
+   "reads current service health and performance metrics from the monitoring system",
+   "reads published company policy documents",
+   "creates incident tickets in incident management system for the on\u2011call team"
+  ],
+  "summary_bot": [
+   "searches and reads approved internal knowledge articles",
+   "creates concise summary of supplied document"
+  ],
+  "support_bot": [
+   "reads customer contact and account information for support cases",
+   "sends email messages to external recipients"
+  ],
+  "travel_bot": [
+   "creates travel request for manager review"
+  ]
+ },
+ "granted_vs_needed_gaps": {
+  "access_bot": [
+   "grant_access"
+  ],
+  "bi_bot": [
+   "read_analytics"
+  ],
+  "chief_of_staff_bot": [
+   "approve_payment",
+   "read_calendar"
+  ],
+  "compliance_bot": [],
+  "contract_bot": [],
+  "customer_success_bot": [],
+  "data_quality_bot": [],
+  "engineering_bot": [],
+  "exec_briefing_bot": [
+   "approve_payment",
+   "read_calendar"
+  ],
+  "facilities_bot": [],
+  "finance_bot": [],
+  "inventory_bot": [],
+  "invoice_bot": [],
+  "knowledge_bot": [],
+  "legacy_bot": [],
+  "marketing_bot": [
+   "read_knowledge_base"
+  ],
+  "monitoring_bot": [],
+  "onboarding_bot": [],
+  "payroll_bot": [],
+  "procurement_bot": [],
+  "recruiting_bot": [],
+  "report_bot": [
+   "delete_records",
+   "read_db"
+  ],
+  "research_bot": [],
+  "sales_assist_bot": [],
+  "sales_bot": [],
+  "scheduler_bot": [],
+  "secops_bot": [],
+  "summary_bot": [
+   "approve_payment"
+  ],
+  "support_bot": [],
+  "travel_bot": []
+ },
  "metadata": {
   "llm_enrichment": {
    "enabled": true,
    "operations": {
     "needed_access": {
-     "status": "unavailable",
-     "detail": "RuntimeError"
+     "status": "ok",
+     "agents_with_inference": 30,
+     "agents_with_concrete_gap": 30,
+     "agents_unavailable": []
     },
     "toxic_combination_reasoning": {
      "status": "ok",
@@ -2419,12 +2689,14 @@
      "total_tools": 34,
      "unclassified_tool_ids": [],
      "failed_batch_tool_ids": [],
-     "individual_retry_tool_ids": []
+     "individual_retry_tool_ids": [
+      "create_incident_ticket"
+     ]
     },
     "finding_narratives": {
      "status": "ok",
      "findings": 10,
-     "accepted_grounded_narratives": 8
+     "accepted_grounded_narratives": 9
     }
    },
    "status": "complete",
@@ -2439,5 +2711,5 @@
   }
  },
  "analysis_version": "0.1",
- "generated_at": "2026-07-21T21:32:42.664830Z"
+ "generated_at": "2026-07-21T21:50:03.026673Z"
 }
