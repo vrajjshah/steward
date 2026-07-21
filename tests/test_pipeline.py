@@ -253,7 +253,7 @@ def test_optional_enrichment_preserves_citation_verified_findings(tmp_path, monk
 
     result = analyze_fleet(fleet, tools, llm=llm, enable_llm=True)
 
-    assert len(result.findings) == 7
+    assert len(result.findings) == 9
     assert result.tool_capabilities["read_customer_pii"] == "reads customer PII"
     assert result.needed_capabilities["support_bot"] == ["read customer support case context"]
     assert result.granted_vs_needed_gaps["support_bot"] == ["send_external_email"]

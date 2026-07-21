@@ -30,7 +30,7 @@ def test_api_exposes_only_verified_finding_and_report_surfaces() -> None:
     assert analysis.status_code == 200
     payload = analysis.json()
     assert payload["report"]["scope"]["tools"] > 0
-    assert len(payload["findings"]) == 7
+    assert len(payload["findings"]) == 9
     assert all(finding["evidence"] for finding in payload["findings"])
     assert {finding["source"] for finding in payload["findings"]} == {"deterministic"}
 
@@ -127,7 +127,7 @@ def test_zero_key_demo_reads_a_committed_analysis_shape(tmp_path) -> None:
 
     response = client.get("/api/report")
     assert response.status_code == 200
-    assert response.json()["certification_packet"]["summary"]["findings"] == 7
+    assert response.json()["certification_packet"]["summary"]["findings"] == 9
     dashboard = client.get("/")
     assert dashboard.status_code == 200
     assert "Then: AI-generalized path" not in dashboard.text
@@ -252,7 +252,7 @@ def test_demo_cache_suppresses_a_finding_with_invalid_citation(tmp_path) -> None
     client = TestClient(create_app(StewardService(demo_mode=True, demo_path=cache_path)))
     response = client.get("/api/findings")
     assert response.status_code == 200
-    assert response.json()["count"] == 6
+    assert response.json()["count"] == 8
 
 
 def test_finding_source_is_serialized_for_deterministic_and_llm_generalized_findings() -> None:

@@ -190,6 +190,87 @@
       "granted_tools": ["web_search", "summarize_document"],
       "can_delegate_to": [],
       "usage_log": ["web_search", "summarize_document"]
+    },
+    {
+      "id": "procurement_bot",
+      "name": "ProcurementBot",
+      "owner": "Dana Vasquez, Procurement",
+      "description": "Retrieves prior agreements and opens audit follow-ups for the procurement team.",
+      "granted_tools": ["read_contract_repository", "create_audit_ticket"],
+      "can_delegate_to": [],
+      "usage_log": ["read_contract_repository", "create_audit_ticket"]
+    },
+    {
+      "id": "marketing_bot",
+      "name": "MarketingBot",
+      "owner": "Owen Bennett, Marketing",
+      "description": "Researches public market sources and summarizes findings for campaign planning.",
+      "granted_tools": ["web_search", "summarize_document", "read_knowledge_base"],
+      "can_delegate_to": [],
+      "usage_log": ["web_search", "summarize_document", "read_knowledge_base"]
+    },
+    {
+      "id": "customer_success_bot",
+      "name": "CustomerSuccessBot",
+      "owner": "Nina Alvarez, Customer Success",
+      "description": "Looks up approved playbooks and posts internal account reminders to the success team.",
+      "granted_tools": ["read_knowledge_base", "send_internal_message"],
+      "can_delegate_to": [],
+      "usage_log": ["read_knowledge_base", "send_internal_message"]
+    },
+    {
+      "id": "recruiting_bot",
+      "name": "RecruitingBot",
+      "owner": "Jordan Ellis, People Operations",
+      "description": "Checks interviewer availability and creates internal interview holds.",
+      "granted_tools": ["read_calendar", "create_calendar_event"],
+      "can_delegate_to": [],
+      "usage_log": ["read_calendar", "create_calendar_event"]
+    },
+    {
+      "id": "bi_bot",
+      "name": "BusinessIntelligenceBot",
+      "owner": "Noah Williams, Analytics",
+      "description": "Runs read-only analytics queries and prepares metrics for the weekly review.",
+      "granted_tools": ["read_analytics", "read_db"],
+      "can_delegate_to": [],
+      "usage_log": ["read_analytics", "read_db"]
+    },
+    {
+      "id": "facilities_bot",
+      "name": "FacilitiesBot",
+      "owner": "Morgan Lee, Workplace Services",
+      "description": "Creates travel requests and checks workplace policy for on-site visits.",
+      "granted_tools": ["create_travel_request", "read_policy_library"],
+      "can_delegate_to": [],
+      "usage_log": ["create_travel_request", "read_policy_library"]
+    },
+    {
+      "id": "secops_bot",
+      "name": "SecOpsBot",
+      "owner": "Harper Davis, Site Reliability",
+      "description": "Reads service metrics and policy, and opens incident tickets when thresholds breach.",
+      "granted_tools": ["read_system_metrics", "read_policy_library", "create_incident_ticket"],
+      "can_delegate_to": [],
+      "usage_log": ["read_system_metrics", "read_policy_library", "create_incident_ticket"]
+    },
+    {
+      "id": "chief_of_staff_bot",
+      "name": "ChiefOfStaffBot",
+      "owner": "Avery Thompson, Executive Operations",
+      "description": "Prepares leadership briefings and can hand finance approvals to the finance agent.",
+      "granted_tools": ["read_calendar", "read_knowledge_base"],
+      "can_delegate_to": ["finance_bot"],
+      "usage_log": ["read_calendar", "read_knowledge_base"]
+    },
+    {
+      "id": "exec_briefing_bot",
+      "name": "ExecBriefingBot",
+      "owner": "Avery Thompson, Executive Operations",
+      "description": "Compiles executive reading material and routes requests through the chief of staff agent.",
+      "granted_tools": ["read_knowledge_base"],
+      "can_delegate_to": ["chief_of_staff_bot"],
+      "usage_log": ["read_knowledge_base"]
     }
   ]
 }

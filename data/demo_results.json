@@ -1,412 +1,2452 @@
 {
-  "effective_access": {
-    "access_bot": [
-      "grant_access",
-      "request_access"
-    ],
-    "compliance_bot": [
-      "create_audit_ticket",
-      "read_policy_library"
-    ],
-    "contract_bot": [
-      "draft_contract",
-      "read_contract_repository"
-    ],
-    "data_quality_bot": [
-      "read_analytics",
-      "validate_data"
-    ],
-    "engineering_bot": [
-      "create_issue",
-      "read_source_repository"
-    ],
-    "finance_bot": [
-      "approve_payment"
-    ],
-    "inventory_bot": [
-      "read_inventory",
-      "update_inventory"
-    ],
-    "invoice_bot": [
-      "approve_payment",
-      "create_vendor"
-    ],
-    "knowledge_bot": [
-      "read_knowledge_base"
-    ],
-    "legacy_bot": [
-      "read_archive"
-    ],
-    "monitoring_bot": [
-      "create_incident_ticket",
-      "read_system_metrics"
-    ],
-    "onboarding_bot": [
-      "create_onboarding_checklist",
-      "send_internal_message"
-    ],
-    "payroll_bot": [
-      "add_employee",
-      "run_payroll"
-    ],
-    "report_bot": [
-      "delete_records",
-      "export_data",
-      "read_db"
-    ],
-    "research_bot": [
-      "summarize_document",
-      "web_search"
-    ],
-    "sales_assist_bot": [
-      "draft_customer_email",
-      "read_crm"
-    ],
-    "sales_bot": [
-      "read_crm",
-      "send_external_email"
-    ],
-    "scheduler_bot": [
-      "create_calendar_event",
-      "read_calendar"
-    ],
-    "summary_bot": [
-      "approve_payment",
-      "read_knowledge_base"
-    ],
-    "support_bot": [
-      "read_customer_pii",
-      "send_external_email"
-    ],
-    "travel_bot": [
-      "create_travel_request"
-    ]
-  },
-  "findings": [
-    {
-      "agent_id": "access_bot",
-      "business_risk": "AccessBot possesses both the request_access and grant_access tools, creating a self\u2011granting privilege path that bypasses segregation of duties. This enables the agent to request and immediately grant access to applications without independent review, exposing all systems reachable through the access request workflow to unauthorized privilege escalation and potential data breach or compliance violation.",
-      "check_type": "sod",
-      "control_mapping": "Identity governance \u2014 segregation of duties (access request versus access grant)",
-      "evidence": [
-        {
-          "detail": "holds this effective-access combination",
-          "entity_id": "access_bot",
-          "entity_type": "agent"
-        },
-        {
-          "detail": "AccessBot has a direct grant of grant_access.",
-          "entity_id": "grant_access",
-          "entity_type": "tool"
-        },
-        {
-          "detail": "AccessBot has a direct grant of request_access.",
-          "entity_id": "request_access",
-          "entity_type": "tool"
-        }
-      ],
-      "id": "sod:access_bot:it_request_access_grant_access",
-      "recommended_action": "Separate the request and grant functions by revoking AccessBot's direct grant of grant_access, enforce a human approval step for all access grants, and implement monitoring/audit controls to detect any unauthorized self\u2011granting activity.",
-      "rule_id": "it_request_access_grant_access",
-      "severity": "high",
-      "source": "deterministic",
-      "title": "Self-granting privilege path"
-    },
-    {
-      "agent_id": "invoice_bot",
-      "business_risk": "The InvoiceBot agent holds both the create_vendor and approve_payment grants, eliminating segregation of duties. If the agent is compromised or misused, it could create fraudulent vendor records and directly approve payments, exposing the organization to unauthorized disbursements, financial loss, and SOX ITGC non\u2011compliance.",
-      "check_type": "sod",
-      "control_mapping": "SOX ITGC \u2014 segregation of duties (vendor creation versus payment approval)",
-      "evidence": [
-        {
-          "detail": "holds this effective-access combination",
-          "entity_id": "invoice_bot",
-          "entity_type": "agent"
-        },
-        {
-          "detail": "InvoiceBot has a direct grant of approve_payment.",
-          "entity_id": "approve_payment",
-          "entity_type": "tool"
-        },
-        {
-          "detail": "InvoiceBot has a direct grant of create_vendor.",
-          "entity_id": "create_vendor",
-          "entity_type": "tool"
-        }
-      ],
-      "id": "sod:invoice_bot:finance_create_vendor_approve_payment",
-      "recommended_action": "Separate the vendor\u2011creation and payment\u2011approval privileges by revoking one of the direct grants from InvoiceBot, assign each function to distinct roles, and implement dual\u2011approval controls with audit logging to enforce segregation of duties.",
-      "rule_id": "finance_create_vendor_approve_payment",
-      "severity": "critical",
-      "source": "deterministic",
-      "title": "Critical fraud path: create vendor and approve payment"
-    },
-    {
-      "agent_id": "payroll_bot",
-      "business_risk": "PayrollBot holds both the add_employee and run_payroll permissions, enabling it to create employee records and immediately process payroll for those records. This creates a direct ghost\u2011employee fraud path that could result in unauthorized payouts, material financial loss, and violation of SOX ITGC segregation\u2011of\u2011duties requirements.",
-      "check_type": "sod",
-      "control_mapping": "SOX ITGC \u2014 segregation of duties (employee setup versus payroll execution)",
-      "evidence": [
-        {
-          "detail": "holds this effective-access combination",
-          "entity_id": "payroll_bot",
-          "entity_type": "agent"
-        },
-        {
-          "detail": "PayrollBot has a direct grant of add_employee.",
-          "entity_id": "add_employee",
-          "entity_type": "tool"
-        },
-        {
-          "detail": "PayrollBot has a direct grant of run_payroll.",
-          "entity_id": "run_payroll",
-          "entity_type": "tool"
-        }
-      ],
-      "id": "sod:payroll_bot:hr_add_employee_run_payroll",
-      "recommended_action": "Separate the conflicting duties by revoking one of the direct grants (e.g., remove add_employee from PayrollBot or require an independent approval step before payroll execution). Implement a least\u2011privilege model and continuous monitoring of add_employee and run_payroll activities.",
-      "rule_id": "hr_add_employee_run_payroll",
-      "severity": "critical",
-      "source": "deterministic",
-      "title": "Critical ghost-employee fraud path"
-    },
-    {
-      "agent_id": "support_bot",
-      "business_risk": "SupportBot possesses both read access to customer PII and the ability to send external email, creating a direct path for unauthorized disclosure of sensitive personal data to recipients outside the organization.",
-      "check_type": "sod",
-      "control_mapping": "Data protection \u2014 least privilege and controlled external egress",
-      "evidence": [
-        {
-          "detail": "holds this effective-access combination",
-          "entity_id": "support_bot",
-          "entity_type": "agent"
-        },
-        {
-          "detail": "SupportBot has a direct grant of read_customer_pii.",
-          "entity_id": "read_customer_pii",
-          "entity_type": "tool"
-        },
-        {
-          "detail": "SupportBot has a direct grant of send_external_email.",
-          "entity_id": "send_external_email",
-          "entity_type": "tool"
-        }
-      ],
-      "id": "sod:support_bot:sensitive_data_external_egress",
-      "recommended_action": "Revoke the direct grant of send_external_email from SupportBot, restrict read_customer_pii to only necessary internal processes, and implement monitoring and approval controls for any external egress of PII.",
-      "rule_id": "sensitive_data_external_egress",
-      "severity": "critical",
-      "source": "deterministic",
-      "title": "Critical data-exfiltration path"
-    },
-    {
-      "agent_id": "report_bot",
-      "business_risk": "If the ReportBot agent\u2019s credentials are compromised, its unused standing grants allow it to delete operational records or export analytics data. This could cause loss of critical reporting information, unauthorized data exposure, regulatory non\u2011compliance, and reputational harm.",
-      "check_type": "over_privilege",
-      "control_mapping": "Least privilege \u2014 access certification using granted versus used access",
-      "evidence": [
-        {
-          "detail": "usage log contains no invocation of these direct grants: delete_records, export_data",
-          "entity_id": "report_bot",
-          "entity_type": "agent"
-        },
-        {
-          "detail": "ReportBot has a direct grant of delete_records.",
-          "entity_id": "delete_records",
-          "entity_type": "tool"
-        },
-        {
-          "detail": "ReportBot has a direct grant of export_data.",
-          "entity_id": "export_data",
-          "entity_type": "tool"
-        }
-      ],
-      "id": "over_privilege:report_bot:unused_granted_tools",
-      "recommended_action": "Revoke the unused delete_records and export_data grants from ReportBot, align its permissions with the principle of least privilege, and institute regular access\u2011certification reviews to ensure granted rights match actual usage.",
-      "rule_id": "unused_granted_tools",
-      "severity": "high",
-      "source": "deterministic",
-      "title": "Unused standing access: 2 direct grants"
-    },
-    {
-      "agent_id": "summary_bot",
-      "business_risk": "This agent does not hold payment approval directly, but it can reach an agent that does through delegation. Its effective access therefore includes authority to authorize disbursements, creating a confused-deputy path.",
-      "check_type": "escalation",
-      "control_mapping": "Identity governance \u2014 effective access review and least privilege",
-      "evidence": [
-        {
-          "detail": "reaches approve_payment only through delegation to finance_bot",
-          "entity_id": "summary_bot",
-          "entity_type": "agent"
-        },
-        {
-          "detail": "summary_bot can delegate to finance_bot.",
-          "entity_id": "summary_bot->finance_bot",
-          "entity_type": "delegation_edge"
-        },
-        {
-          "detail": "finance_bot is the direct grant holder reached through summary_bot -> finance_bot.",
-          "entity_id": "finance_bot",
-          "entity_type": "agent"
-        },
-        {
-          "detail": "SummaryBot effectively reaches approve_payment through summary_bot -> finance_bot.",
-          "entity_id": "approve_payment",
-          "entity_type": "tool"
-        }
-      ],
-      "id": "escalation:summary_bot:delegated_high_risk_payment_approval",
-      "recommended_action": "Remove or constrain the delegation link to the payment-approving agent. If delegation is necessary, expose a narrowly scoped workflow action rather than the delegate's general approval authority.",
-      "rule_id": "delegated_high_risk_payment_approval",
-      "severity": "critical",
-      "source": "deterministic",
-      "title": "Delegated payment-approval blast radius"
-    },
-    {
-      "agent_id": "legacy_bot",
-      "business_risk": "The LegacyBot agent operates without an assigned owner, meaning no accountable reviewer can certify its access or monitor its activity. This creates a governance gap where the agent could be used to retrieve or disclose information from the retired product archive without oversight, increasing the risk of unauthorized data exposure, non\u2011compliance with accountability controls, and potential reputational or regulatory impact.",
-      "check_type": "orphan",
-      "control_mapping": "Accountability \u2014 named owner required for agent access certification",
-      "evidence": [
-        {
-          "detail": "owner is null in the fleet inventory",
-          "entity_id": "legacy_bot",
-          "entity_type": "agent"
-        }
-      ],
-      "id": "orphan:legacy_bot:missing_owner",
-      "recommended_action": "Immediately assign a qualified owner to LegacyBot and complete the required access certification. Update the fleet inventory to reflect the owner, enforce the \"named owner\" control for all agents, and schedule periodic reviews to ensure continued accountability.",
-      "rule_id": "missing_owner",
-      "severity": "high",
-      "source": "deterministic",
-      "title": "Ownerless agent has no accountable reviewer"
-    },
-    {
-      "agent_id": "sales_bot",
-      "business_risk": "The SalesBot agent possesses both read access to CRM account context and the ability to send email outside the company. This combination enables the automated extraction of customer information and its transmission to external recipients, creating a direct pathway for data leakage, privacy violations, and potential reputational damage.",
-      "check_type": "sod",
-      "control_mapping": "Identity governance \u2014 GPT-identified segregation-of-duties candidate",
-      "evidence": [
-        {
-          "detail": "holds the cited effective-access combination.",
-          "entity_id": "sales_bot",
-          "entity_type": "agent"
-        },
-        {
-          "detail": "SalesBot has a direct grant of read_crm.",
-          "entity_id": "read_crm",
-          "entity_type": "tool"
-        },
-        {
-          "detail": "SalesBot has a direct grant of send_external_email.",
-          "entity_id": "send_external_email",
-          "entity_type": "tool"
-        }
-      ],
-      "id": "sod:sales_bot:llm_toxic_read_crm_send_external_email",
-      "recommended_action": "Separate the read and email-sending capabilities by revoking one of the direct grants, enforce a segregation\u2011of\u2011duties policy, and implement monitoring to detect any unauthorized external communications originating from agents with CRM read privileges.",
-      "rule_id": "llm_toxic_read_crm_send_external_email",
-      "severity": "high",
-      "source": "llm_generalized",
-      "title": "AI-generalized toxic capability combination: Read CRM account context + Send email outside the company"
-    }
-  ],
-  "generated_at": "2026-07-18T09:37:20.185131+00:00",
-  "granted_vs_needed_gaps": {},
-  "metadata": {
-    "analysis_version": "0.1",
-    "citation_verification": {
-      "evidence_entities": 23,
-      "findings": 8,
-      "status": "passed"
-    },
-    "llm_enrichment": {
-      "completion": {
-        "agents_incomplete": [],
-        "classified_tools": 32,
-        "total_tools": 34,
-        "unclassified_tool_ids": [
-          "create_onboarding_checklist",
-          "read_contract_repository"
-        ]
-      },
-      "disclosure": "This zero-key cache was produced from a real OpenAI gpt-oss-120b Amazon Bedrock analysis of the committed synthetic fleet. Dashboard replay never calls Bedrock.",
-      "enabled": true,
-      "mode": "cached live OpenAI gpt-oss-120b Bedrock result",
-      "operations": {
-        "finding_narratives": {
-          "accepted_grounded_narratives": 7,
-          "findings": 8,
-          "status": "ok"
-        },
-        "needed_access": {
-          "detail": "RuntimeError",
-          "status": "unavailable"
-        },
-        "tool_classification": {
-          "classified_tools": 32,
-          "failed_batch_tool_ids": [],
-          "individual_retry_tool_ids": [
-            "create_onboarding_checklist",
-            "read_contract_repository"
-          ],
-          "status": "partial",
-          "total_tools": 34,
-          "unclassified_tool_ids": [
-            "create_onboarding_checklist",
-            "read_contract_repository"
-          ]
-        },
-        "toxic_combination_reasoning": {
-          "agents_analyzed": 17,
-          "agents_incomplete": [],
-          "agents_total": 17,
-          "new_cited_findings": 1,
-          "on_demand_tool_retry_ids": [],
-          "status": "ok"
-        }
-      },
-      "status": "partial"
-    },
-    "mode": "zero_key_cached_demo",
-    "redaction": "No secrets, environment values, or agent payload data are present in this cache. Model prose and cache text were redacted before serialization."
-  },
-  "needed_capabilities": {},
+ "fleet": {
   "schema_version": "0.1",
-  "tool_capabilities": {
-    "add_employee": "creates employee records in the HR system",
-    "approve_payment": "authorizes queued payments for release",
-    "create_audit_ticket": "opens audit follow\u2011up tickets for reviewers",
-    "create_calendar_event": "creates internal meeting events on selected calendars",
-    "create_incident_ticket": "opens incident tickets for the on\u2011call team",
-    "create_issue": "opens engineering work items for maintainers",
-    "create_onboarding_checklist": "Unclassified capability for Create onboarding checklist",
-    "create_travel_request": "creates travel request for manager review",
-    "create_vendor": "adds supplier or payee to vendor master records",
-    "delete_records": "deletes selected analytics database records",
-    "draft_contract": "drafts contract language for legal review",
-    "draft_customer_email": "creates customer email draft for sales representative review",
-    "export_data": "exports analytics data to a file",
-    "grant_access": "assigns application role to employee",
-    "read_analytics": "retrieves approved analytics extract for review",
-    "read_archive": "retrieves documents from retired product archive",
-    "read_calendar": "retrieves availability from internal team calendars",
-    "read_contract_repository": "Unclassified capability for Read contract repository",
-    "read_crm": "reads sales account notes and opportunity context from the CRM system",
-    "read_customer_pii": "reads customer contact and account information for support cases",
-    "read_db": "executes read\u2011only queries on the analytics database",
-    "read_inventory": "reads current warehouse inventory and stock counts",
-    "read_knowledge_base": "searches and reads approved internal knowledge articles",
-    "read_policy_library": "reads published company policy documents",
-    "read_source_repository": "reads source code files and issue data from engineering repository",
-    "read_system_metrics": "reads service health and performance metrics from monitoring system",
-    "request_access": "submits employee access request to application provisioning system",
-    "run_payroll": "initiates payroll calculation and payment processing for employees",
-    "send_external_email": "sends email messages to external recipients",
-    "send_internal_message": "sends reminder messages via internal messaging platform",
-    "summarize_document": "generates concise summary of a document",
-    "update_inventory": "updates warehouse inventory stock count records",
-    "validate_data": "validates analytics extract data against quality rules",
-    "web_search": "searches publicly available web pages for information"
+  "fleet_name": "Steward Synthetic Enterprise Fleet",
+  "agents": [
+   {
+    "id": "invoice_bot",
+    "name": "InvoiceBot",
+    "owner": "Maya Chen, Finance Operations",
+    "description": "Creates vendor records and routes supplier invoices for payment processing.",
+    "granted_tools": [
+     "create_vendor",
+     "approve_payment"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "create_vendor",
+     "approve_payment"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "payroll_bot",
+    "name": "PayrollBot",
+    "owner": "Jordan Ellis, People Operations",
+    "description": "Maintains employee records and prepares the biweekly payroll run.",
+    "granted_tools": [
+     "add_employee",
+     "run_payroll"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "add_employee",
+     "run_payroll"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "access_bot",
+    "name": "AccessBot",
+    "owner": "Priya Nair, IT Identity",
+    "description": "Helps employees request the application access they need for their work.",
+    "granted_tools": [
+     "request_access",
+     "grant_access"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "request_access",
+     "grant_access"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "report_bot",
+    "name": "ReportBot",
+    "owner": "Noah Williams, Analytics",
+    "description": "Reads analytics data and prepares the weekly operating report.",
+    "granted_tools": [
+     "read_db",
+     "delete_records",
+     "export_data"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_db"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "support_bot",
+    "name": "SupportBot",
+    "owner": "Elena Rodriguez, Customer Support",
+    "description": "Investigates customer support cases and sends resolution updates to customers.",
+    "granted_tools": [
+     "read_customer_pii",
+     "send_external_email"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_customer_pii",
+     "send_external_email"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "summary_bot",
+    "name": "SummaryBot",
+    "owner": "Avery Thompson, Executive Operations",
+    "description": "Reads approved internal knowledge and produces concise leadership summaries.",
+    "granted_tools": [
+     "read_knowledge_base"
+    ],
+    "can_delegate_to": [
+     "finance_bot"
+    ],
+    "usage_log": [
+     "read_knowledge_base"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "finance_bot",
+    "name": "FinanceBot",
+    "owner": "Maya Chen, Finance Operations",
+    "description": "Approves payments that have completed the finance review workflow.",
+    "granted_tools": [
+     "approve_payment"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "approve_payment"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "legacy_bot",
+    "name": "LegacyBot",
+    "owner": null,
+    "description": "Answers questions from the retired product archive.",
+    "granted_tools": [
+     "read_archive"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_archive"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "knowledge_bot",
+    "name": "KnowledgeBot",
+    "owner": "Samir Patel, Internal Enablement",
+    "description": "Finds approved answers in the internal knowledge base for employees.",
+    "granted_tools": [
+     "read_knowledge_base"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_knowledge_base"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "sales_assist_bot",
+    "name": "SalesAssistBot",
+    "owner": "Talia Brooks, Revenue Operations",
+    "description": "Looks up account context and drafts follow-up messages for sales representatives.",
+    "granted_tools": [
+     "read_crm",
+     "draft_customer_email"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_crm",
+     "draft_customer_email"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "sales_bot",
+    "name": "SalesBot",
+    "owner": "Talia Brooks, Revenue Operations",
+    "description": "Looks up CRM account context and sends personalized sales outreach to prospective customers.",
+    "granted_tools": [
+     "read_crm",
+     "send_external_email"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_crm",
+     "send_external_email"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "inventory_bot",
+    "name": "InventoryBot",
+    "owner": "Diego Morales, Supply Chain",
+    "description": "Checks current inventory and updates stock counts after warehouse reconciliation.",
+    "granted_tools": [
+     "read_inventory",
+     "update_inventory"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_inventory",
+     "update_inventory"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "compliance_bot",
+    "name": "ComplianceBot",
+    "owner": "Grace Kim, Risk and Compliance",
+    "description": "Reads policy material and opens audit follow-up tickets for reviewers.",
+    "granted_tools": [
+     "read_policy_library",
+     "create_audit_ticket"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_policy_library",
+     "create_audit_ticket"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "data_quality_bot",
+    "name": "DataQualityBot",
+    "owner": "Noah Williams, Analytics",
+    "description": "Reviews analytics extracts and validates data-quality rules.",
+    "granted_tools": [
+     "read_analytics",
+     "validate_data"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_analytics",
+     "validate_data"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "travel_bot",
+    "name": "TravelBot",
+    "owner": "Morgan Lee, Workplace Services",
+    "description": "Creates travel requests for employees before they are reviewed by a manager.",
+    "granted_tools": [
+     "create_travel_request"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "create_travel_request"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "contract_bot",
+    "name": "ContractBot",
+    "owner": "Riley Foster, Legal Operations",
+    "description": "Finds prior agreements and drafts contract language for legal review.",
+    "granted_tools": [
+     "read_contract_repository",
+     "draft_contract"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_contract_repository",
+     "draft_contract"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "scheduler_bot",
+    "name": "SchedulerBot",
+    "owner": "Avery Thompson, Executive Operations",
+    "description": "Checks team calendars and creates internal meeting holds.",
+    "granted_tools": [
+     "read_calendar",
+     "create_calendar_event"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_calendar",
+     "create_calendar_event"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "engineering_bot",
+    "name": "EngineeringBot",
+    "owner": "Ishan Kapoor, Engineering Productivity",
+    "description": "Reads source repositories and opens engineering work items for maintainers.",
+    "granted_tools": [
+     "read_source_repository",
+     "create_issue"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_source_repository",
+     "create_issue"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "monitoring_bot",
+    "name": "MonitoringBot",
+    "owner": "Harper Davis, Site Reliability",
+    "description": "Reads service metrics and opens incident tickets when a threshold is breached.",
+    "granted_tools": [
+     "read_system_metrics",
+     "create_incident_ticket"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_system_metrics",
+     "create_incident_ticket"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "onboarding_bot",
+    "name": "OnboardingBot",
+    "owner": "Jordan Ellis, People Operations",
+    "description": "Creates onboarding checklists and sends internal reminders to new hires.",
+    "granted_tools": [
+     "create_onboarding_checklist",
+     "send_internal_message"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "create_onboarding_checklist",
+     "send_internal_message"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "research_bot",
+    "name": "ResearchBot",
+    "owner": "Lena Okafor, Strategy",
+    "description": "Searches public sources and summarizes non-confidential market research.",
+    "granted_tools": [
+     "web_search",
+     "summarize_document"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "web_search",
+     "summarize_document"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "procurement_bot",
+    "name": "ProcurementBot",
+    "owner": "Dana Vasquez, Procurement",
+    "description": "Retrieves prior agreements and opens audit follow-ups for the procurement team.",
+    "granted_tools": [
+     "read_contract_repository",
+     "create_audit_ticket"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_contract_repository",
+     "create_audit_ticket"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "marketing_bot",
+    "name": "MarketingBot",
+    "owner": "Owen Bennett, Marketing",
+    "description": "Researches public market sources and summarizes findings for campaign planning.",
+    "granted_tools": [
+     "web_search",
+     "summarize_document",
+     "read_knowledge_base"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "web_search",
+     "summarize_document",
+     "read_knowledge_base"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "customer_success_bot",
+    "name": "CustomerSuccessBot",
+    "owner": "Nina Alvarez, Customer Success",
+    "description": "Looks up approved playbooks and posts internal account reminders to the success team.",
+    "granted_tools": [
+     "read_knowledge_base",
+     "send_internal_message"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_knowledge_base",
+     "send_internal_message"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "recruiting_bot",
+    "name": "RecruitingBot",
+    "owner": "Jordan Ellis, People Operations",
+    "description": "Checks interviewer availability and creates internal interview holds.",
+    "granted_tools": [
+     "read_calendar",
+     "create_calendar_event"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_calendar",
+     "create_calendar_event"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "bi_bot",
+    "name": "BusinessIntelligenceBot",
+    "owner": "Noah Williams, Analytics",
+    "description": "Runs read-only analytics queries and prepares metrics for the weekly review.",
+    "granted_tools": [
+     "read_analytics",
+     "read_db"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_analytics",
+     "read_db"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "facilities_bot",
+    "name": "FacilitiesBot",
+    "owner": "Morgan Lee, Workplace Services",
+    "description": "Creates travel requests and checks workplace policy for on-site visits.",
+    "granted_tools": [
+     "create_travel_request",
+     "read_policy_library"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "create_travel_request",
+     "read_policy_library"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "secops_bot",
+    "name": "SecOpsBot",
+    "owner": "Harper Davis, Site Reliability",
+    "description": "Reads service metrics and policy, and opens incident tickets when thresholds breach.",
+    "granted_tools": [
+     "read_system_metrics",
+     "read_policy_library",
+     "create_incident_ticket"
+    ],
+    "can_delegate_to": [],
+    "usage_log": [
+     "read_system_metrics",
+     "read_policy_library",
+     "create_incident_ticket"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "chief_of_staff_bot",
+    "name": "ChiefOfStaffBot",
+    "owner": "Avery Thompson, Executive Operations",
+    "description": "Prepares leadership briefings and can hand finance approvals to the finance agent.",
+    "granted_tools": [
+     "read_calendar",
+     "read_knowledge_base"
+    ],
+    "can_delegate_to": [
+     "finance_bot"
+    ],
+    "usage_log": [
+     "read_calendar",
+     "read_knowledge_base"
+    ],
+    "usage_log_available": true
+   },
+   {
+    "id": "exec_briefing_bot",
+    "name": "ExecBriefingBot",
+    "owner": "Avery Thompson, Executive Operations",
+    "description": "Compiles executive reading material and routes requests through the chief of staff agent.",
+    "granted_tools": [
+     "read_knowledge_base"
+    ],
+    "can_delegate_to": [
+     "chief_of_staff_bot"
+    ],
+    "usage_log": [
+     "read_knowledge_base"
+    ],
+    "usage_log_available": true
+   }
+  ]
+ },
+ "tools": {
+  "schema_version": "0.1",
+  "tools": [
+   {
+    "id": "create_vendor",
+    "name": "Create vendor record",
+    "description": "Adds a supplier or payee to the vendor master."
+   },
+   {
+    "id": "approve_payment",
+    "name": "Approve payment",
+    "description": "Authorizes a queued payment for release."
+   },
+   {
+    "id": "add_employee",
+    "name": "Add employee",
+    "description": "Creates an employee record in the people system."
+   },
+   {
+    "id": "run_payroll",
+    "name": "Run payroll",
+    "description": "Starts a payroll calculation and payment run."
+   },
+   {
+    "id": "request_access",
+    "name": "Request application access",
+    "description": "Submits an access request for an employee."
+   },
+   {
+    "id": "grant_access",
+    "name": "Grant application access",
+    "description": "Assigns a requested application role to an employee."
+   },
+   {
+    "id": "read_db",
+    "name": "Read analytics database",
+    "description": "Runs read-only queries against the analytics database."
+   },
+   {
+    "id": "delete_records",
+    "name": "Delete database records",
+    "description": "Permanently removes selected records from the analytics database."
+   },
+   {
+    "id": "export_data",
+    "name": "Export data",
+    "description": "Exports selected analytics data to a file."
+   },
+   {
+    "id": "read_customer_pii",
+    "name": "Read customer profile details",
+    "description": "Retrieves customer contact and account information for a support case."
+   },
+   {
+    "id": "send_external_email",
+    "name": "Send email outside the company",
+    "description": "Delivers an email to an address outside the organization."
+   },
+   {
+    "id": "read_knowledge_base",
+    "name": "Read internal knowledge base",
+    "description": "Searches and retrieves approved internal knowledge articles."
+   },
+   {
+    "id": "read_archive",
+    "name": "Read retired product archive",
+    "description": "Retrieves documents from the retired product archive."
+   },
+   {
+    "id": "read_crm",
+    "name": "Read CRM account context",
+    "description": "Retrieves sales account notes and opportunity context."
+   },
+   {
+    "id": "draft_customer_email",
+    "name": "Draft customer email",
+    "description": "Creates a message draft for a sales representative to review and send."
+   },
+   {
+    "id": "read_inventory",
+    "name": "Read inventory",
+    "description": "Retrieves current warehouse inventory and stock counts."
+   },
+   {
+    "id": "update_inventory",
+    "name": "Update inventory count",
+    "description": "Updates a warehouse stock count after reconciliation."
+   },
+   {
+    "id": "read_policy_library",
+    "name": "Read policy library",
+    "description": "Retrieves published company policy documents."
+   },
+   {
+    "id": "create_audit_ticket",
+    "name": "Create audit ticket",
+    "description": "Opens a follow-up item for an audit reviewer."
+   },
+   {
+    "id": "read_analytics",
+    "name": "Read analytics extract",
+    "description": "Retrieves an approved analytics extract for review."
+   },
+   {
+    "id": "validate_data",
+    "name": "Validate data rules",
+    "description": "Checks an analytics extract against defined quality rules."
+   },
+   {
+    "id": "create_travel_request",
+    "name": "Create travel request",
+    "description": "Creates a travel request for later manager review."
+   },
+   {
+    "id": "read_contract_repository",
+    "name": "Read contract repository",
+    "description": "Retrieves approved contract templates and prior agreements."
+   },
+   {
+    "id": "draft_contract",
+    "name": "Draft contract language",
+    "description": "Prepares contract wording for legal review."
+   },
+   {
+    "id": "read_calendar",
+    "name": "Read team calendar",
+    "description": "Retrieves availability from internal team calendars."
+   },
+   {
+    "id": "create_calendar_event",
+    "name": "Create internal calendar event",
+    "description": "Creates an internal meeting hold on selected calendars."
+   },
+   {
+    "id": "read_source_repository",
+    "name": "Read source repository",
+    "description": "Retrieves source files and issue context from an engineering repository."
+   },
+   {
+    "id": "create_issue",
+    "name": "Create engineering issue",
+    "description": "Opens a work item for an engineering maintainer."
+   },
+   {
+    "id": "read_system_metrics",
+    "name": "Read service metrics",
+    "description": "Retrieves current service health and performance metrics."
+   },
+   {
+    "id": "create_incident_ticket",
+    "name": "Create incident ticket",
+    "description": "Opens an incident ticket for the on-call team."
+   },
+   {
+    "id": "create_onboarding_checklist",
+    "name": "Create onboarding checklist",
+    "description": "Creates a standard internal checklist for a new hire."
+   },
+   {
+    "id": "send_internal_message",
+    "name": "Send internal message",
+    "description": "Sends a reminder through the company internal messaging system."
+   },
+   {
+    "id": "web_search",
+    "name": "Search public web",
+    "description": "Searches publicly available web pages."
+   },
+   {
+    "id": "summarize_document",
+    "name": "Summarize document",
+    "description": "Produces a concise summary of a supplied non-confidential document."
+   }
+  ]
+ },
+ "findings": [
+  {
+   "id": "sod:access_bot:it_request_access_grant_access",
+   "rule_id": "it_request_access_grant_access",
+   "source": "deterministic",
+   "agent_id": "access_bot",
+   "check_type": "sod",
+   "severity": "high",
+   "title": "Self-granting privilege path",
+   "business_risk": "AccessBot can both request and grant application access, creating a self\u2011granting privilege path that bypasses segregation of duties. This enables unauthorized or excessive access to any application the bot can manage, increasing the risk of data exposure, compliance violations, and privilege escalation across the organization.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "access_bot",
+     "detail": "holds this effective-access combination"
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "grant_access",
+     "detail": "AccessBot has a direct grant of grant_access."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "request_access",
+     "detail": "AccessBot has a direct grant of request_access."
+    }
+   ],
+   "recommended_action": "Separate the request and grant functions into distinct agents or roles, remove direct grant privileges from AccessBot, and enforce an independent approval workflow with audit logging for all access grants.",
+   "control_mapping": "Identity governance \u2014 segregation of duties (access request versus access grant)",
+   "owasp_mcp": [],
+   "real_world_incident": []
+  },
+  {
+   "id": "sod:invoice_bot:finance_create_vendor_approve_payment",
+   "rule_id": "finance_create_vendor_approve_payment",
+   "source": "deterministic",
+   "agent_id": "invoice_bot",
+   "check_type": "sod",
+   "severity": "critical",
+   "title": "Critical fraud path: create vendor and approve payment",
+   "business_risk": "InvoiceBot possesses both the create_vendor and approve_payment tool grants, giving a single automated agent the ability to add new vendors and subsequently authorize payments to those vendors. This concentration of authority creates a direct fraud pathway where a malicious or compromised bot could generate fictitious vendor records and approve disbursements without independent oversight, exposing the organization to unauthorized financial loss and SOX ITGC compliance violations.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "invoice_bot",
+     "detail": "holds this effective-access combination"
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "approve_payment",
+     "detail": "InvoiceBot has a direct grant of approve_payment."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "create_vendor",
+     "detail": "InvoiceBot has a direct grant of create_vendor."
+    }
+   ],
+   "recommended_action": "Implement segregation of duties by revoking one of the conflicting grants from InvoiceBot (e.g., remove approve_payment or create_vendor), introduce a separate approval workflow that requires an independent human reviewer, and enforce monitoring of vendor creation and payment approval activities.",
+   "control_mapping": "SOX ITGC \u2014 segregation of duties (vendor creation versus payment approval)",
+   "owasp_mcp": [],
+   "real_world_incident": []
+  },
+  {
+   "id": "sod:payroll_bot:hr_add_employee_run_payroll",
+   "rule_id": "hr_add_employee_run_payroll",
+   "source": "deterministic",
+   "agent_id": "payroll_bot",
+   "check_type": "sod",
+   "severity": "critical",
+   "title": "Critical ghost-employee fraud path",
+   "business_risk": "PayrollBot possesses both the add_employee and run_payroll privileges, enabling a single automated agent to create fictitious employee records and immediately trigger payroll disbursements. This conflation of employee setup and payroll execution creates a direct path for ghost\u2011employee fraud, exposing the organization to unauthorized financial loss, potential violation of SOX ITGC segregation\u2011of\u2011duties requirements, and reputational damage.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "payroll_bot",
+     "detail": "holds this effective-access combination"
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "add_employee",
+     "detail": "PayrollBot has a direct grant of add_employee."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "run_payroll",
+     "detail": "PayrollBot has a direct grant of run_payroll."
+    }
+   ],
+   "recommended_action": "Implement segregation of duties by removing the direct add_employee grant from PayrollBot and requiring a separate, approved workflow for employee creation. Enforce least\u2011privilege access, add dual\u2011control approvals for payroll runs, and monitor for anomalous employee\u2011to\u2011payroll activity.",
+   "control_mapping": "SOX ITGC \u2014 segregation of duties (employee setup versus payroll execution)",
+   "owasp_mcp": [],
+   "real_world_incident": []
+  },
+  {
+   "id": "sod:support_bot:sensitive_data_external_egress",
+   "rule_id": "sensitive_data_external_egress",
+   "source": "deterministic",
+   "agent_id": "support_bot",
+   "check_type": "sod",
+   "severity": "critical",
+   "title": "Critical data-exfiltration path",
+   "business_risk": "SupportBot possesses both read access to customer PII and the ability to send external email, creating a direct path for unauthorized disclosure of all customer personal data it can retrieve. If exploited, the agent could exfiltrate sensitive customer information to external recipients, resulting in regulatory breach, reputational damage, and potential financial penalties.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "support_bot",
+     "detail": "holds this effective-access combination"
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "read_customer_pii",
+     "detail": "SupportBot has a direct grant of read_customer_pii."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "send_external_email",
+     "detail": "SupportBot has a direct grant of send_external_email."
+    }
+   ],
+   "recommended_action": "Revoke or tightly scope the read_customer_pii permission for SupportBot, separate the external email capability from any PII\u2011accessing function, and implement monitoring/alerting on any external email transmissions containing PII. Apply least\u2011privilege principles and conduct a review of agent\u2011tool grants.",
+   "control_mapping": "Data protection \u2014 least privilege and controlled external egress",
+   "owasp_mcp": [
+    {
+     "id": "MCP03:2025",
+     "title": "Tool Poisoning",
+     "url": "https://owasp.org/www-project-mcp-top-10/2025/MCP03-2025%E2%80%93Tool-Poisoning",
+     "relevance": "A compromised or misleading tool can steer an agent toward unintended data handling or external actions."
+    },
+    {
+     "id": "MCP04:2025",
+     "title": "Software Supply Chain Attacks & Dependency Tampering",
+     "url": "https://owasp.org/www-project-mcp-top-10/2025/MCP04-2025%E2%80%93Software-Supply-Chain-Attacks%26Dependency-Tampering",
+     "relevance": "A compromised MCP dependency can add covert external egress to an otherwise trusted workflow."
+    }
+   ],
+   "real_world_incident": [
+    {
+     "title": "Supabase MCP stored prompt-injection scenario",
+     "date": "Documented 16 Sep 2025",
+     "url": "https://supabase.com/blog/defense-in-depth-mcp",
+     "relevance": "Supabase documented a scenario where stored instructions led an MCP-connected agent to read private database data and write it into an attacker-visible field. It illustrates this read-to-egress risk class; it is not evidence that this fleet uses Supabase."
+    },
+    {
+     "title": "Malicious postmark-mcp package backdoor (v1.0.16)",
+     "date": "Postmark advisory, 25 Sep 2025",
+     "url": "https://postmarkapp.com/blog/information-regarding-malicious-postmark-mcp-package",
+     "relevance": "Postmark reported that an impersonating npm package silently BCC'd email to an external server. It is an analogous tool-poisoning and supply-chain incident, not evidence that this fleet installed the package."
+    }
+   ]
+  },
+  {
+   "id": "over_privilege:report_bot:unused_granted_tools",
+   "rule_id": "unused_granted_tools",
+   "source": "deterministic",
+   "agent_id": "report_bot",
+   "check_type": "over_privilege",
+   "severity": "high",
+   "title": "Unused standing access: 2 direct grants",
+   "business_risk": "If the ReportBot agent were compromised, its unused but active delete_records and export_data privileges could be leveraged to erase operational data or extract sensitive analytics, potentially causing loss of reporting integrity, regulatory non\u2011compliance, and financial impact.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "report_bot",
+     "detail": "usage log contains no invocation of these direct grants: delete_records, export_data"
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "delete_records",
+     "detail": "ReportBot has a direct grant of delete_records."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "export_data",
+     "detail": "ReportBot has a direct grant of export_data."
+    }
+   ],
+   "recommended_action": "Revoke the unused direct grants from ReportBot, align its permissions with its documented function of reading analytics and generating reports, and implement periodic access\u2011certification to ensure no excess privileges remain.",
+   "control_mapping": "Least privilege \u2014 access certification using granted versus used access",
+   "owasp_mcp": [],
+   "real_world_incident": []
+  },
+  {
+   "id": "escalation:chief_of_staff_bot:delegated_high_risk_payment_approval",
+   "rule_id": "delegated_high_risk_payment_approval",
+   "source": "deterministic",
+   "agent_id": "chief_of_staff_bot",
+   "check_type": "escalation",
+   "severity": "critical",
+   "title": "Delegated payment-approval blast radius",
+   "business_risk": "This agent does not hold payment approval directly, but it can reach an agent that does through delegation. Its effective access therefore includes authority to authorize disbursements, creating a confused-deputy path.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "chief_of_staff_bot",
+     "detail": "reaches approve_payment only through delegation to finance_bot"
+    },
+    {
+     "entity_type": "delegation_edge",
+     "entity_id": "chief_of_staff_bot->finance_bot",
+     "detail": "chief_of_staff_bot can delegate to finance_bot."
+    },
+    {
+     "entity_type": "agent",
+     "entity_id": "finance_bot",
+     "detail": "finance_bot is the direct grant holder reached through chief_of_staff_bot -> finance_bot."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "approve_payment",
+     "detail": "ChiefOfStaffBot effectively reaches approve_payment through chief_of_staff_bot -> finance_bot."
+    }
+   ],
+   "recommended_action": "Remove or constrain the delegation link to the payment-approving agent. If delegation is necessary, expose a narrowly scoped workflow action rather than the delegate's general approval authority.",
+   "control_mapping": "Identity governance \u2014 effective access review and least privilege",
+   "owasp_mcp": [],
+   "real_world_incident": []
+  },
+  {
+   "id": "escalation:exec_briefing_bot:delegated_high_risk_payment_approval",
+   "rule_id": "delegated_high_risk_payment_approval",
+   "source": "deterministic",
+   "agent_id": "exec_briefing_bot",
+   "check_type": "escalation",
+   "severity": "critical",
+   "title": "Delegated payment-approval blast radius",
+   "business_risk": "Compromise of ExecBriefingBot (exec_briefing_bot) grants an attacker indirect access to the approve_payment tool via the delegation chain exec_briefing_bot \u2192 chief_of_staff_bot \u2192 finance_bot. This expands the blast radius to unauthorized payment approvals, exposing the organization to financial loss, fraud, and regulatory non\u2011compliance.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "exec_briefing_bot",
+     "detail": "reaches approve_payment only through delegation to finance_bot"
+    },
+    {
+     "entity_type": "delegation_edge",
+     "entity_id": "exec_briefing_bot->chief_of_staff_bot",
+     "detail": "exec_briefing_bot can delegate to chief_of_staff_bot."
+    },
+    {
+     "entity_type": "delegation_edge",
+     "entity_id": "chief_of_staff_bot->finance_bot",
+     "detail": "chief_of_staff_bot can delegate to finance_bot."
+    },
+    {
+     "entity_type": "agent",
+     "entity_id": "finance_bot",
+     "detail": "finance_bot is the direct grant holder reached through exec_briefing_bot -> chief_of_staff_bot -> finance_bot."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "approve_payment",
+     "detail": "ExecBriefingBot effectively reaches approve_payment through exec_briefing_bot -> chief_of_staff_bot -> finance_bot."
+    }
+   ],
+   "recommended_action": "Restrict the delegation path so that ExecBriefingBot cannot reach approve_payment, enforce least\u2011privilege principles, conduct an access review of all delegation edges, and implement monitoring/alerting for any use of approve_payment originating from indirect agents.",
+   "control_mapping": "Identity governance \u2014 effective access review and least privilege",
+   "owasp_mcp": [],
+   "real_world_incident": []
+  },
+  {
+   "id": "escalation:summary_bot:delegated_high_risk_payment_approval",
+   "rule_id": "delegated_high_risk_payment_approval",
+   "source": "deterministic",
+   "agent_id": "summary_bot",
+   "check_type": "escalation",
+   "severity": "critical",
+   "title": "Delegated payment-approval blast radius",
+   "business_risk": "SummaryBot can reach the approve_payment tool through its delegation to FinanceBot, extending its effective access to payment approval functions. This delegation creates a blast radius where any compromise or misuse of SummaryBot could be leveraged to authorize payments, violating least\u2011privilege and increasing fraud risk.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "summary_bot",
+     "detail": "reaches approve_payment only through delegation to finance_bot"
+    },
+    {
+     "entity_type": "delegation_edge",
+     "entity_id": "summary_bot->finance_bot",
+     "detail": "summary_bot can delegate to finance_bot."
+    },
+    {
+     "entity_type": "agent",
+     "entity_id": "finance_bot",
+     "detail": "finance_bot is the direct grant holder reached through summary_bot -> finance_bot."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "approve_payment",
+     "detail": "SummaryBot effectively reaches approve_payment through summary_bot -> finance_bot."
+    }
+   ],
+   "recommended_action": "Review and tighten the delegation relationship: ensure SummaryBot only delegates to FinanceBot where absolutely required, apply stricter access reviews for the finance_bot grant, and enforce separation\u2011of\u2011duties controls on approve_payment. Remove or re\u2011scope unnecessary delegation edges and monitor delegated access paths.",
+   "control_mapping": "Identity governance \u2014 effective access review and least privilege",
+   "owasp_mcp": [
+    {
+     "id": "MCP02:2025",
+     "title": "Privilege Escalation via Scope Creep",
+     "url": "https://owasp.org/www-project-mcp-top-10/2025/MCP02-2025%E2%80%93Privilege-Escalation-via-Scope-Creep",
+     "relevance": "Delegated authority can turn a narrowly scoped agent into a higher-impact actor through effective access."
+    }
+   ],
+   "real_world_incident": [
+    {
+     "title": "Invariant Labs GitHub MCP toxic agent flow",
+     "date": "26 May 2025",
+     "url": "https://invariantlabs.ai/blog/mcp-github-vulnerability",
+     "relevance": "Invariant demonstrated an untrusted GitHub issue coercing an MCP-connected agent to move private repository data into a public pull request. It illustrates how composed authority paths can exceed an agent's apparent role."
+    }
+   ]
+  },
+  {
+   "id": "orphan:legacy_bot:missing_owner",
+   "rule_id": "missing_owner",
+   "source": "deterministic",
+   "agent_id": "legacy_bot",
+   "check_type": "orphan",
+   "severity": "high",
+   "title": "Ownerless agent has no accountable reviewer",
+   "business_risk": "The agent (LegacyBot) lacks a designated owner, meaning no accountable reviewer can certify its access or monitor its activity. This creates a governance gap that could allow the agent to operate unchecked, leading to potential unauthorized actions, non\u2011compliance with accountability requirements, and exposure to regulatory or reputational penalties.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "legacy_bot",
+     "detail": "owner is null in the fleet inventory"
+    }
+   ],
+   "recommended_action": "Assign a qualified owner to the agent, complete the required access certification, and update the fleet inventory to reflect the ownership assignment. Implement a process to ensure all agents have named owners before deployment.",
+   "control_mapping": "Accountability \u2014 named owner required for agent access certification",
+   "owasp_mcp": [],
+   "real_world_incident": []
+  },
+  {
+   "id": "sod:sales_bot:llm_toxic_read_crm_send_external_email",
+   "rule_id": "llm_toxic_read_crm_send_external_email",
+   "source": "llm_generalized",
+   "agent_id": "sales_bot",
+   "check_type": "sod",
+   "severity": "high",
+   "title": "AI-generalized toxic capability combination: Read CRM account context + Send email outside the company",
+   "business_risk": "The SalesBot agent possesses both read access to CRM account data and the ability to send external email. This combination enables the agent to extract customer account information and transmit it outside the organization, creating a direct pathway for data leakage, privacy violations, reputational harm, and potential regulatory penalties.",
+   "evidence": [
+    {
+     "entity_type": "agent",
+     "entity_id": "sales_bot",
+     "detail": "holds the cited effective-access combination."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "read_crm",
+     "detail": "SalesBot has a direct grant of read_crm."
+    },
+    {
+     "entity_type": "tool",
+     "entity_id": "send_external_email",
+     "detail": "SalesBot has a direct grant of send_external_email."
+    }
+   ],
+   "recommended_action": "Separate the read_crm and send_external_email privileges, enforce least\u2011privilege principles, require dual\u2011approval for any workflow that combines data extraction with external communication, and implement monitoring/auditing of outbound email from agents with CRM access.",
+   "control_mapping": "Identity governance \u2014 GPT-identified segregation-of-duties candidate",
+   "owasp_mcp": [
+    {
+     "id": "MCP03:2025",
+     "title": "Tool Poisoning",
+     "url": "https://owasp.org/www-project-mcp-top-10/2025/MCP03-2025%E2%80%93Tool-Poisoning",
+     "relevance": "A compromised or misleading tool can steer an agent toward unintended data handling or external actions."
+    },
+    {
+     "id": "MCP04:2025",
+     "title": "Software Supply Chain Attacks & Dependency Tampering",
+     "url": "https://owasp.org/www-project-mcp-top-10/2025/MCP04-2025%E2%80%93Software-Supply-Chain-Attacks%26Dependency-Tampering",
+     "relevance": "A compromised MCP dependency can add covert external egress to an otherwise trusted workflow."
+    }
+   ],
+   "real_world_incident": [
+    {
+     "title": "Supabase MCP stored prompt-injection scenario",
+     "date": "Documented 16 Sep 2025",
+     "url": "https://supabase.com/blog/defense-in-depth-mcp",
+     "relevance": "Supabase documented a scenario where stored instructions led an MCP-connected agent to read private database data and write it into an attacker-visible field. It illustrates this read-to-egress risk class; it is not evidence that this fleet uses Supabase."
+    },
+    {
+     "title": "Malicious postmark-mcp package backdoor (v1.0.16)",
+     "date": "Postmark advisory, 25 Sep 2025",
+     "url": "https://postmarkapp.com/blog/information-regarding-malicious-postmark-mcp-package",
+     "relevance": "Postmark reported that an impersonating npm package silently BCC'd email to an external server. It is an analogous tool-poisoning and supply-chain incident, not evidence that this fleet installed the package."
+    }
+   ]
   }
+ ],
+ "direct_access": {
+  "access_bot": [
+   "grant_access",
+   "request_access"
+  ],
+  "bi_bot": [
+   "read_analytics",
+   "read_db"
+  ],
+  "chief_of_staff_bot": [
+   "read_calendar",
+   "read_knowledge_base"
+  ],
+  "compliance_bot": [
+   "create_audit_ticket",
+   "read_policy_library"
+  ],
+  "contract_bot": [
+   "draft_contract",
+   "read_contract_repository"
+  ],
+  "customer_success_bot": [
+   "read_knowledge_base",
+   "send_internal_message"
+  ],
+  "data_quality_bot": [
+   "read_analytics",
+   "validate_data"
+  ],
+  "engineering_bot": [
+   "create_issue",
+   "read_source_repository"
+  ],
+  "exec_briefing_bot": [
+   "read_knowledge_base"
+  ],
+  "facilities_bot": [
+   "create_travel_request",
+   "read_policy_library"
+  ],
+  "finance_bot": [
+   "approve_payment"
+  ],
+  "inventory_bot": [
+   "read_inventory",
+   "update_inventory"
+  ],
+  "invoice_bot": [
+   "approve_payment",
+   "create_vendor"
+  ],
+  "knowledge_bot": [
+   "read_knowledge_base"
+  ],
+  "legacy_bot": [
+   "read_archive"
+  ],
+  "marketing_bot": [
+   "read_knowledge_base",
+   "summarize_document",
+   "web_search"
+  ],
+  "monitoring_bot": [
+   "create_incident_ticket",
+   "read_system_metrics"
+  ],
+  "onboarding_bot": [
+   "create_onboarding_checklist",
+   "send_internal_message"
+  ],
+  "payroll_bot": [
+   "add_employee",
+   "run_payroll"
+  ],
+  "procurement_bot": [
+   "create_audit_ticket",
+   "read_contract_repository"
+  ],
+  "recruiting_bot": [
+   "create_calendar_event",
+   "read_calendar"
+  ],
+  "report_bot": [
+   "delete_records",
+   "export_data",
+   "read_db"
+  ],
+  "research_bot": [
+   "summarize_document",
+   "web_search"
+  ],
+  "sales_assist_bot": [
+   "draft_customer_email",
+   "read_crm"
+  ],
+  "sales_bot": [
+   "read_crm",
+   "send_external_email"
+  ],
+  "scheduler_bot": [
+   "create_calendar_event",
+   "read_calendar"
+  ],
+  "secops_bot": [
+   "create_incident_ticket",
+   "read_policy_library",
+   "read_system_metrics"
+  ],
+  "summary_bot": [
+   "read_knowledge_base"
+  ],
+  "support_bot": [
+   "read_customer_pii",
+   "send_external_email"
+  ],
+  "travel_bot": [
+   "create_travel_request"
+  ]
+ },
+ "effective_access": {
+  "access_bot": [
+   "grant_access",
+   "request_access"
+  ],
+  "bi_bot": [
+   "read_analytics",
+   "read_db"
+  ],
+  "chief_of_staff_bot": [
+   "approve_payment",
+   "read_calendar",
+   "read_knowledge_base"
+  ],
+  "compliance_bot": [
+   "create_audit_ticket",
+   "read_policy_library"
+  ],
+  "contract_bot": [
+   "draft_contract",
+   "read_contract_repository"
+  ],
+  "customer_success_bot": [
+   "read_knowledge_base",
+   "send_internal_message"
+  ],
+  "data_quality_bot": [
+   "read_analytics",
+   "validate_data"
+  ],
+  "engineering_bot": [
+   "create_issue",
+   "read_source_repository"
+  ],
+  "exec_briefing_bot": [
+   "approve_payment",
+   "read_calendar",
+   "read_knowledge_base"
+  ],
+  "facilities_bot": [
+   "create_travel_request",
+   "read_policy_library"
+  ],
+  "finance_bot": [
+   "approve_payment"
+  ],
+  "inventory_bot": [
+   "read_inventory",
+   "update_inventory"
+  ],
+  "invoice_bot": [
+   "approve_payment",
+   "create_vendor"
+  ],
+  "knowledge_bot": [
+   "read_knowledge_base"
+  ],
+  "legacy_bot": [
+   "read_archive"
+  ],
+  "marketing_bot": [
+   "read_knowledge_base",
+   "summarize_document",
+   "web_search"
+  ],
+  "monitoring_bot": [
+   "create_incident_ticket",
+   "read_system_metrics"
+  ],
+  "onboarding_bot": [
+   "create_onboarding_checklist",
+   "send_internal_message"
+  ],
+  "payroll_bot": [
+   "add_employee",
+   "run_payroll"
+  ],
+  "procurement_bot": [
+   "create_audit_ticket",
+   "read_contract_repository"
+  ],
+  "recruiting_bot": [
+   "create_calendar_event",
+   "read_calendar"
+  ],
+  "report_bot": [
+   "delete_records",
+   "export_data",
+   "read_db"
+  ],
+  "research_bot": [
+   "summarize_document",
+   "web_search"
+  ],
+  "sales_assist_bot": [
+   "draft_customer_email",
+   "read_crm"
+  ],
+  "sales_bot": [
+   "read_crm",
+   "send_external_email"
+  ],
+  "scheduler_bot": [
+   "create_calendar_event",
+   "read_calendar"
+  ],
+  "secops_bot": [
+   "create_incident_ticket",
+   "read_policy_library",
+   "read_system_metrics"
+  ],
+  "summary_bot": [
+   "approve_payment",
+   "read_knowledge_base"
+  ],
+  "support_bot": [
+   "read_customer_pii",
+   "send_external_email"
+  ],
+  "travel_bot": [
+   "create_travel_request"
+  ]
+ },
+ "delegation_paths": {
+  "access_bot": {
+   "grant_access": [
+    "access_bot"
+   ],
+   "request_access": [
+    "access_bot"
+   ]
+  },
+  "bi_bot": {
+   "read_analytics": [
+    "bi_bot"
+   ],
+   "read_db": [
+    "bi_bot"
+   ]
+  },
+  "chief_of_staff_bot": {
+   "approve_payment": [
+    "chief_of_staff_bot",
+    "finance_bot"
+   ],
+   "read_calendar": [
+    "chief_of_staff_bot"
+   ],
+   "read_knowledge_base": [
+    "chief_of_staff_bot"
+   ]
+  },
+  "compliance_bot": {
+   "create_audit_ticket": [
+    "compliance_bot"
+   ],
+   "read_policy_library": [
+    "compliance_bot"
+   ]
+  },
+  "contract_bot": {
+   "draft_contract": [
+    "contract_bot"
+   ],
+   "read_contract_repository": [
+    "contract_bot"
+   ]
+  },
+  "customer_success_bot": {
+   "read_knowledge_base": [
+    "customer_success_bot"
+   ],
+   "send_internal_message": [
+    "customer_success_bot"
+   ]
+  },
+  "data_quality_bot": {
+   "read_analytics": [
+    "data_quality_bot"
+   ],
+   "validate_data": [
+    "data_quality_bot"
+   ]
+  },
+  "engineering_bot": {
+   "create_issue": [
+    "engineering_bot"
+   ],
+   "read_source_repository": [
+    "engineering_bot"
+   ]
+  },
+  "exec_briefing_bot": {
+   "approve_payment": [
+    "exec_briefing_bot",
+    "chief_of_staff_bot",
+    "finance_bot"
+   ],
+   "read_calendar": [
+    "exec_briefing_bot",
+    "chief_of_staff_bot"
+   ],
+   "read_knowledge_base": [
+    "exec_briefing_bot"
+   ]
+  },
+  "facilities_bot": {
+   "create_travel_request": [
+    "facilities_bot"
+   ],
+   "read_policy_library": [
+    "facilities_bot"
+   ]
+  },
+  "finance_bot": {
+   "approve_payment": [
+    "finance_bot"
+   ]
+  },
+  "inventory_bot": {
+   "read_inventory": [
+    "inventory_bot"
+   ],
+   "update_inventory": [
+    "inventory_bot"
+   ]
+  },
+  "invoice_bot": {
+   "approve_payment": [
+    "invoice_bot"
+   ],
+   "create_vendor": [
+    "invoice_bot"
+   ]
+  },
+  "knowledge_bot": {
+   "read_knowledge_base": [
+    "knowledge_bot"
+   ]
+  },
+  "legacy_bot": {
+   "read_archive": [
+    "legacy_bot"
+   ]
+  },
+  "marketing_bot": {
+   "read_knowledge_base": [
+    "marketing_bot"
+   ],
+   "summarize_document": [
+    "marketing_bot"
+   ],
+   "web_search": [
+    "marketing_bot"
+   ]
+  },
+  "monitoring_bot": {
+   "create_incident_ticket": [
+    "monitoring_bot"
+   ],
+   "read_system_metrics": [
+    "monitoring_bot"
+   ]
+  },
+  "onboarding_bot": {
+   "create_onboarding_checklist": [
+    "onboarding_bot"
+   ],
+   "send_internal_message": [
+    "onboarding_bot"
+   ]
+  },
+  "payroll_bot": {
+   "add_employee": [
+    "payroll_bot"
+   ],
+   "run_payroll": [
+    "payroll_bot"
+   ]
+  },
+  "procurement_bot": {
+   "create_audit_ticket": [
+    "procurement_bot"
+   ],
+   "read_contract_repository": [
+    "procurement_bot"
+   ]
+  },
+  "recruiting_bot": {
+   "create_calendar_event": [
+    "recruiting_bot"
+   ],
+   "read_calendar": [
+    "recruiting_bot"
+   ]
+  },
+  "report_bot": {
+   "delete_records": [
+    "report_bot"
+   ],
+   "export_data": [
+    "report_bot"
+   ],
+   "read_db": [
+    "report_bot"
+   ]
+  },
+  "research_bot": {
+   "summarize_document": [
+    "research_bot"
+   ],
+   "web_search": [
+    "research_bot"
+   ]
+  },
+  "sales_assist_bot": {
+   "draft_customer_email": [
+    "sales_assist_bot"
+   ],
+   "read_crm": [
+    "sales_assist_bot"
+   ]
+  },
+  "sales_bot": {
+   "read_crm": [
+    "sales_bot"
+   ],
+   "send_external_email": [
+    "sales_bot"
+   ]
+  },
+  "scheduler_bot": {
+   "create_calendar_event": [
+    "scheduler_bot"
+   ],
+   "read_calendar": [
+    "scheduler_bot"
+   ]
+  },
+  "secops_bot": {
+   "create_incident_ticket": [
+    "secops_bot"
+   ],
+   "read_policy_library": [
+    "secops_bot"
+   ],
+   "read_system_metrics": [
+    "secops_bot"
+   ]
+  },
+  "summary_bot": {
+   "approve_payment": [
+    "summary_bot",
+    "finance_bot"
+   ],
+   "read_knowledge_base": [
+    "summary_bot"
+   ]
+  },
+  "support_bot": {
+   "read_customer_pii": [
+    "support_bot"
+   ],
+   "send_external_email": [
+    "support_bot"
+   ]
+  },
+  "travel_bot": {
+   "create_travel_request": [
+    "travel_bot"
+   ]
+  }
+ },
+ "unused_grants": {
+  "access_bot": [],
+  "bi_bot": [],
+  "chief_of_staff_bot": [],
+  "compliance_bot": [],
+  "contract_bot": [],
+  "customer_success_bot": [],
+  "data_quality_bot": [],
+  "engineering_bot": [],
+  "exec_briefing_bot": [],
+  "facilities_bot": [],
+  "finance_bot": [],
+  "inventory_bot": [],
+  "invoice_bot": [],
+  "knowledge_bot": [],
+  "legacy_bot": [],
+  "marketing_bot": [],
+  "monitoring_bot": [],
+  "onboarding_bot": [],
+  "payroll_bot": [],
+  "procurement_bot": [],
+  "recruiting_bot": [],
+  "report_bot": [
+   "delete_records",
+   "export_data"
+  ],
+  "research_bot": [],
+  "sales_assist_bot": [],
+  "sales_bot": [],
+  "scheduler_bot": [],
+  "secops_bot": [],
+  "summary_bot": [],
+  "support_bot": [],
+  "travel_bot": []
+ },
+ "access_summaries": {
+  "access_bot": {
+   "agent_id": "access_bot",
+   "direct_access": [
+    "grant_access",
+    "request_access"
+   ],
+   "effective_access": [
+    "grant_access",
+    "request_access"
+   ],
+   "used_tools": [
+    "grant_access",
+    "request_access"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "grant_access": [
+     "access_bot"
+    ],
+    "request_access": [
+     "access_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "bi_bot": {
+   "agent_id": "bi_bot",
+   "direct_access": [
+    "read_analytics",
+    "read_db"
+   ],
+   "effective_access": [
+    "read_analytics",
+    "read_db"
+   ],
+   "used_tools": [
+    "read_analytics",
+    "read_db"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "read_analytics": [
+     "bi_bot"
+    ],
+    "read_db": [
+     "bi_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "chief_of_staff_bot": {
+   "agent_id": "chief_of_staff_bot",
+   "direct_access": [
+    "read_calendar",
+    "read_knowledge_base"
+   ],
+   "effective_access": [
+    "approve_payment",
+    "read_calendar",
+    "read_knowledge_base"
+   ],
+   "used_tools": [
+    "read_calendar",
+    "read_knowledge_base"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "approve_payment": [
+     "chief_of_staff_bot",
+     "finance_bot"
+    ],
+    "read_calendar": [
+     "chief_of_staff_bot"
+    ],
+    "read_knowledge_base": [
+     "chief_of_staff_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "compliance_bot": {
+   "agent_id": "compliance_bot",
+   "direct_access": [
+    "create_audit_ticket",
+    "read_policy_library"
+   ],
+   "effective_access": [
+    "create_audit_ticket",
+    "read_policy_library"
+   ],
+   "used_tools": [
+    "create_audit_ticket",
+    "read_policy_library"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_audit_ticket": [
+     "compliance_bot"
+    ],
+    "read_policy_library": [
+     "compliance_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "contract_bot": {
+   "agent_id": "contract_bot",
+   "direct_access": [
+    "draft_contract",
+    "read_contract_repository"
+   ],
+   "effective_access": [
+    "draft_contract",
+    "read_contract_repository"
+   ],
+   "used_tools": [
+    "draft_contract",
+    "read_contract_repository"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "draft_contract": [
+     "contract_bot"
+    ],
+    "read_contract_repository": [
+     "contract_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "customer_success_bot": {
+   "agent_id": "customer_success_bot",
+   "direct_access": [
+    "read_knowledge_base",
+    "send_internal_message"
+   ],
+   "effective_access": [
+    "read_knowledge_base",
+    "send_internal_message"
+   ],
+   "used_tools": [
+    "read_knowledge_base",
+    "send_internal_message"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "read_knowledge_base": [
+     "customer_success_bot"
+    ],
+    "send_internal_message": [
+     "customer_success_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "data_quality_bot": {
+   "agent_id": "data_quality_bot",
+   "direct_access": [
+    "read_analytics",
+    "validate_data"
+   ],
+   "effective_access": [
+    "read_analytics",
+    "validate_data"
+   ],
+   "used_tools": [
+    "read_analytics",
+    "validate_data"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "read_analytics": [
+     "data_quality_bot"
+    ],
+    "validate_data": [
+     "data_quality_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "engineering_bot": {
+   "agent_id": "engineering_bot",
+   "direct_access": [
+    "create_issue",
+    "read_source_repository"
+   ],
+   "effective_access": [
+    "create_issue",
+    "read_source_repository"
+   ],
+   "used_tools": [
+    "create_issue",
+    "read_source_repository"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_issue": [
+     "engineering_bot"
+    ],
+    "read_source_repository": [
+     "engineering_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "exec_briefing_bot": {
+   "agent_id": "exec_briefing_bot",
+   "direct_access": [
+    "read_knowledge_base"
+   ],
+   "effective_access": [
+    "approve_payment",
+    "read_calendar",
+    "read_knowledge_base"
+   ],
+   "used_tools": [
+    "read_knowledge_base"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "approve_payment": [
+     "exec_briefing_bot",
+     "chief_of_staff_bot",
+     "finance_bot"
+    ],
+    "read_calendar": [
+     "exec_briefing_bot",
+     "chief_of_staff_bot"
+    ],
+    "read_knowledge_base": [
+     "exec_briefing_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "facilities_bot": {
+   "agent_id": "facilities_bot",
+   "direct_access": [
+    "create_travel_request",
+    "read_policy_library"
+   ],
+   "effective_access": [
+    "create_travel_request",
+    "read_policy_library"
+   ],
+   "used_tools": [
+    "create_travel_request",
+    "read_policy_library"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_travel_request": [
+     "facilities_bot"
+    ],
+    "read_policy_library": [
+     "facilities_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "finance_bot": {
+   "agent_id": "finance_bot",
+   "direct_access": [
+    "approve_payment"
+   ],
+   "effective_access": [
+    "approve_payment"
+   ],
+   "used_tools": [
+    "approve_payment"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "approve_payment": [
+     "finance_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "inventory_bot": {
+   "agent_id": "inventory_bot",
+   "direct_access": [
+    "read_inventory",
+    "update_inventory"
+   ],
+   "effective_access": [
+    "read_inventory",
+    "update_inventory"
+   ],
+   "used_tools": [
+    "read_inventory",
+    "update_inventory"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "read_inventory": [
+     "inventory_bot"
+    ],
+    "update_inventory": [
+     "inventory_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "invoice_bot": {
+   "agent_id": "invoice_bot",
+   "direct_access": [
+    "approve_payment",
+    "create_vendor"
+   ],
+   "effective_access": [
+    "approve_payment",
+    "create_vendor"
+   ],
+   "used_tools": [
+    "approve_payment",
+    "create_vendor"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "approve_payment": [
+     "invoice_bot"
+    ],
+    "create_vendor": [
+     "invoice_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "knowledge_bot": {
+   "agent_id": "knowledge_bot",
+   "direct_access": [
+    "read_knowledge_base"
+   ],
+   "effective_access": [
+    "read_knowledge_base"
+   ],
+   "used_tools": [
+    "read_knowledge_base"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "read_knowledge_base": [
+     "knowledge_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "legacy_bot": {
+   "agent_id": "legacy_bot",
+   "direct_access": [
+    "read_archive"
+   ],
+   "effective_access": [
+    "read_archive"
+   ],
+   "used_tools": [
+    "read_archive"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "read_archive": [
+     "legacy_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "marketing_bot": {
+   "agent_id": "marketing_bot",
+   "direct_access": [
+    "read_knowledge_base",
+    "summarize_document",
+    "web_search"
+   ],
+   "effective_access": [
+    "read_knowledge_base",
+    "summarize_document",
+    "web_search"
+   ],
+   "used_tools": [
+    "read_knowledge_base",
+    "summarize_document",
+    "web_search"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "read_knowledge_base": [
+     "marketing_bot"
+    ],
+    "summarize_document": [
+     "marketing_bot"
+    ],
+    "web_search": [
+     "marketing_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "monitoring_bot": {
+   "agent_id": "monitoring_bot",
+   "direct_access": [
+    "create_incident_ticket",
+    "read_system_metrics"
+   ],
+   "effective_access": [
+    "create_incident_ticket",
+    "read_system_metrics"
+   ],
+   "used_tools": [
+    "create_incident_ticket",
+    "read_system_metrics"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_incident_ticket": [
+     "monitoring_bot"
+    ],
+    "read_system_metrics": [
+     "monitoring_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "onboarding_bot": {
+   "agent_id": "onboarding_bot",
+   "direct_access": [
+    "create_onboarding_checklist",
+    "send_internal_message"
+   ],
+   "effective_access": [
+    "create_onboarding_checklist",
+    "send_internal_message"
+   ],
+   "used_tools": [
+    "create_onboarding_checklist",
+    "send_internal_message"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_onboarding_checklist": [
+     "onboarding_bot"
+    ],
+    "send_internal_message": [
+     "onboarding_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "payroll_bot": {
+   "agent_id": "payroll_bot",
+   "direct_access": [
+    "add_employee",
+    "run_payroll"
+   ],
+   "effective_access": [
+    "add_employee",
+    "run_payroll"
+   ],
+   "used_tools": [
+    "add_employee",
+    "run_payroll"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "add_employee": [
+     "payroll_bot"
+    ],
+    "run_payroll": [
+     "payroll_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "procurement_bot": {
+   "agent_id": "procurement_bot",
+   "direct_access": [
+    "create_audit_ticket",
+    "read_contract_repository"
+   ],
+   "effective_access": [
+    "create_audit_ticket",
+    "read_contract_repository"
+   ],
+   "used_tools": [
+    "create_audit_ticket",
+    "read_contract_repository"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_audit_ticket": [
+     "procurement_bot"
+    ],
+    "read_contract_repository": [
+     "procurement_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "recruiting_bot": {
+   "agent_id": "recruiting_bot",
+   "direct_access": [
+    "create_calendar_event",
+    "read_calendar"
+   ],
+   "effective_access": [
+    "create_calendar_event",
+    "read_calendar"
+   ],
+   "used_tools": [
+    "create_calendar_event",
+    "read_calendar"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_calendar_event": [
+     "recruiting_bot"
+    ],
+    "read_calendar": [
+     "recruiting_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "report_bot": {
+   "agent_id": "report_bot",
+   "direct_access": [
+    "delete_records",
+    "export_data",
+    "read_db"
+   ],
+   "effective_access": [
+    "delete_records",
+    "export_data",
+    "read_db"
+   ],
+   "used_tools": [
+    "read_db"
+   ],
+   "unused_direct_grants": [
+    "delete_records",
+    "export_data"
+   ],
+   "delegation_paths": {
+    "delete_records": [
+     "report_bot"
+    ],
+    "export_data": [
+     "report_bot"
+    ],
+    "read_db": [
+     "report_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "research_bot": {
+   "agent_id": "research_bot",
+   "direct_access": [
+    "summarize_document",
+    "web_search"
+   ],
+   "effective_access": [
+    "summarize_document",
+    "web_search"
+   ],
+   "used_tools": [
+    "summarize_document",
+    "web_search"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "summarize_document": [
+     "research_bot"
+    ],
+    "web_search": [
+     "research_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "sales_assist_bot": {
+   "agent_id": "sales_assist_bot",
+   "direct_access": [
+    "draft_customer_email",
+    "read_crm"
+   ],
+   "effective_access": [
+    "draft_customer_email",
+    "read_crm"
+   ],
+   "used_tools": [
+    "draft_customer_email",
+    "read_crm"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "draft_customer_email": [
+     "sales_assist_bot"
+    ],
+    "read_crm": [
+     "sales_assist_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "sales_bot": {
+   "agent_id": "sales_bot",
+   "direct_access": [
+    "read_crm",
+    "send_external_email"
+   ],
+   "effective_access": [
+    "read_crm",
+    "send_external_email"
+   ],
+   "used_tools": [
+    "read_crm",
+    "send_external_email"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "read_crm": [
+     "sales_bot"
+    ],
+    "send_external_email": [
+     "sales_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "scheduler_bot": {
+   "agent_id": "scheduler_bot",
+   "direct_access": [
+    "create_calendar_event",
+    "read_calendar"
+   ],
+   "effective_access": [
+    "create_calendar_event",
+    "read_calendar"
+   ],
+   "used_tools": [
+    "create_calendar_event",
+    "read_calendar"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_calendar_event": [
+     "scheduler_bot"
+    ],
+    "read_calendar": [
+     "scheduler_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "secops_bot": {
+   "agent_id": "secops_bot",
+   "direct_access": [
+    "create_incident_ticket",
+    "read_policy_library",
+    "read_system_metrics"
+   ],
+   "effective_access": [
+    "create_incident_ticket",
+    "read_policy_library",
+    "read_system_metrics"
+   ],
+   "used_tools": [
+    "create_incident_ticket",
+    "read_policy_library",
+    "read_system_metrics"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_incident_ticket": [
+     "secops_bot"
+    ],
+    "read_policy_library": [
+     "secops_bot"
+    ],
+    "read_system_metrics": [
+     "secops_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "summary_bot": {
+   "agent_id": "summary_bot",
+   "direct_access": [
+    "read_knowledge_base"
+   ],
+   "effective_access": [
+    "approve_payment",
+    "read_knowledge_base"
+   ],
+   "used_tools": [
+    "read_knowledge_base"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "approve_payment": [
+     "summary_bot",
+     "finance_bot"
+    ],
+    "read_knowledge_base": [
+     "summary_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "support_bot": {
+   "agent_id": "support_bot",
+   "direct_access": [
+    "read_customer_pii",
+    "send_external_email"
+   ],
+   "effective_access": [
+    "read_customer_pii",
+    "send_external_email"
+   ],
+   "used_tools": [
+    "read_customer_pii",
+    "send_external_email"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "read_customer_pii": [
+     "support_bot"
+    ],
+    "send_external_email": [
+     "support_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  },
+  "travel_bot": {
+   "agent_id": "travel_bot",
+   "direct_access": [
+    "create_travel_request"
+   ],
+   "effective_access": [
+    "create_travel_request"
+   ],
+   "used_tools": [
+    "create_travel_request"
+   ],
+   "unused_direct_grants": [],
+   "delegation_paths": {
+    "create_travel_request": [
+     "travel_bot"
+    ]
+   },
+   "needed_capabilities": [],
+   "granted_vs_needed_gap": []
+  }
+ },
+ "tool_capabilities": {
+  "add_employee": "creates employee records in the people system",
+  "approve_payment": "authorizes queued payments for release",
+  "create_audit_ticket": "opens audit follow\u2011up tickets for reviewers",
+  "create_calendar_event": "creates internal meeting events on selected calendars",
+  "create_incident_ticket": "opens incident tickets for the on\u2011call team",
+  "create_issue": "opens engineering work items for maintainers",
+  "create_travel_request": "creates travel request for manager review",
+  "create_vendor": "adds supplier or payee to vendor master records",
+  "delete_records": "deletes selected records from analytics database",
+  "draft_contract": "drafts contract language for legal review",
+  "draft_customer_email": "drafts customer email for sales representative review",
+  "export_data": "exports analytics data to a file",
+  "grant_access": "assigns requested application role to employee",
+  "read_analytics": "retrieves approved analytics extract for review",
+  "read_archive": "retrieves documents from retired product archive",
+  "read_calendar": "retrieves availability from internal team calendars",
+  "read_crm": "reads sales account notes and opportunity context from CRM system",
+  "read_customer_pii": "reads customer contact and account information for support cases",
+  "read_db": "executes read\u2011only queries on analytics database",
+  "read_inventory": "reads current warehouse inventory and stock counts",
+  "read_knowledge_base": "searches and reads approved internal knowledge articles",
+  "read_policy_library": "reads published company policy documents",
+  "read_source_repository": "reads source code files and issue context from the engineering repository",
+  "read_system_metrics": "reads current service health and performance metrics from the monitoring system",
+  "request_access": "submits an application access request for an employee",
+  "run_payroll": "starts payroll calculation and payment run for employees",
+  "send_external_email": "delivers email messages to external recipients outside the organization",
+  "send_internal_message": "sends reminder messages through the internal messaging system to employees",
+  "summarize_document": "creates concise summary of a document",
+  "update_inventory": "updates warehouse stock count records",
+  "validate_data": "validates analytics extract data against quality rules",
+  "web_search": "searches public web pages for information",
+  "create_onboarding_checklist": "Unclassified capability for Create onboarding checklist",
+  "read_contract_repository": "Unclassified capability for Read contract repository"
+ },
+ "needed_capabilities": {},
+ "granted_vs_needed_gaps": {},
+ "metadata": {
+  "llm_enrichment": {
+   "enabled": true,
+   "operations": {
+    "needed_access": {
+     "status": "unavailable",
+     "detail": "RuntimeError"
+    },
+    "toxic_combination_reasoning": {
+     "status": "ok",
+     "agents_analyzed": 26,
+     "agents_total": 26,
+     "agents_incomplete": [],
+     "on_demand_tool_retry_ids": [],
+     "new_cited_findings": 1
+    },
+    "tool_classification": {
+     "status": "partial",
+     "classified_tools": 32,
+     "total_tools": 34,
+     "unclassified_tool_ids": [
+      "create_onboarding_checklist",
+      "read_contract_repository"
+     ],
+     "failed_batch_tool_ids": [],
+     "individual_retry_tool_ids": [
+      "create_onboarding_checklist",
+      "read_contract_repository"
+     ]
+    },
+    "finding_narratives": {
+     "status": "ok",
+     "findings": 10,
+     "accepted_grounded_narratives": 9
+    }
+   },
+   "status": "partial",
+   "completion": {
+    "classified_tools": 32,
+    "total_tools": 34,
+    "unclassified_tool_ids": [
+     "create_onboarding_checklist",
+     "read_contract_repository"
+    ],
+    "agents_incomplete": []
+   },
+   "mode": "cached live OpenAI gpt-oss-120b Bedrock result",
+   "disclosure": "This zero-key cache was produced from a real OpenAI gpt-oss-120b Amazon Bedrock analysis of the committed synthetic fleet. Dashboard replay never calls Bedrock."
+  }
+ },
+ "analysis_version": "0.1",
+ "generated_at": "2026-07-21T20:50:30.655529Z"
 }

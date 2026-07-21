@@ -10,9 +10,9 @@
   "expected_counts": {
     "sod": 4,
     "over_privilege": 1,
-    "escalation": 1,
+    "escalation": 3,
     "orphan": 1,
-    "total": 7
+    "total": 9
   },
   "expected_findings": [
     {
@@ -96,6 +96,37 @@
       ]
     },
     {
+      "key": "escalation:chief_of_staff_bot:delegated_approve_payment",
+      "check_type": "escalation",
+      "agent_id": "chief_of_staff_bot",
+      "source": "deterministic",
+      "rule_id": "delegated_high_risk_payment_approval",
+      "required_tool_ids": ["approve_payment"],
+      "delegation_path": ["chief_of_staff_bot", "finance_bot"],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "chief_of_staff_bot"},
+        {"entity_type": "delegation_edge", "entity_id": "chief_of_staff_bot->finance_bot"},
+        {"entity_type": "agent", "entity_id": "finance_bot"},
+        {"entity_type": "tool", "entity_id": "approve_payment"}
+      ]
+    },
+    {
+      "key": "escalation:exec_briefing_bot:delegated_approve_payment",
+      "check_type": "escalation",
+      "agent_id": "exec_briefing_bot",
+      "source": "deterministic",
+      "rule_id": "delegated_high_risk_payment_approval",
+      "required_tool_ids": ["approve_payment"],
+      "delegation_path": ["exec_briefing_bot", "chief_of_staff_bot", "finance_bot"],
+      "required_evidence": [
+        {"entity_type": "agent", "entity_id": "exec_briefing_bot"},
+        {"entity_type": "delegation_edge", "entity_id": "exec_briefing_bot->chief_of_staff_bot"},
+        {"entity_type": "delegation_edge", "entity_id": "chief_of_staff_bot->finance_bot"},
+        {"entity_type": "agent", "entity_id": "finance_bot"},
+        {"entity_type": "tool", "entity_id": "approve_payment"}
+      ]
+    },
+    {
       "key": "orphan:legacy_bot:no_owner",
       "check_type": "orphan",
       "agent_id": "legacy_bot",
@@ -149,6 +180,13 @@
     "engineering_bot",
     "monitoring_bot",
     "onboarding_bot",
-    "research_bot"
+    "research_bot",
+    "procurement_bot",
+    "marketing_bot",
+    "customer_success_bot",
+    "recruiting_bot",
+    "bi_bot",
+    "facilities_bot",
+    "secops_bot"
   ]
 }

@@ -13,6 +13,10 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   **LLM06 Excessive Agency**, and the exfiltration path as **LLM02 Sensitive Information
   Disclosure**.
 - Contributing guide, security policy, README badges, and CI that now runs lint + tests + eval.
+- Expanded the synthetic fleet to **30 agents** across ~20 departments, adding a **two-hop
+  delegation chain** (ExecBriefingBot → ChiefOfStaffBot → FinanceBot) that surfaces a deeper
+  multi-hop escalation finding. Answer key and demo cache regenerated in lockstep; the
+  deterministic gate remains 1.000.
 
 ### Planned
 - Ingestion of real agent execution traces (the "Used" pillar) with drift detection.

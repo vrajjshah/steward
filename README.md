@@ -112,7 +112,7 @@ demo pass-through, not an authentication gateway.
 
 ## What the demo finds
 
-The synthetic fleet has 21 agents, 34 tools, and deliberately planted risks. It also includes 13 clean agents so the eval catches noisy rules.
+The synthetic fleet has 30 agents, 34 tools, and deliberately planted risks. It also includes 20 clean agents so the eval catches noisy rules.
 
 | Finding | Why it matters |
 | --- | --- |
@@ -122,6 +122,7 @@ The synthetic fleet has 21 agents, 34 tools, and deliberately planted risks. It 
 | `AccessBot`: request + grant access | Lets one identity request and self-grant privilege. |
 | `ReportBot`: unused delete/export grants | Standing destructive/export access exceeds observed use. |
 | `SummaryBot` → `FinanceBot` | A read-only summary agent inherits payment approval through delegation. |
+| `ExecBriefingBot` → `ChiefOfStaffBot` → `FinanceBot` | Payment-approval authority inherited through a **two-hop** delegation chain — a deeper confused-deputy blast radius. |
 | `LegacyBot`: no owner | No accountable human can certify or revoke access. |
 | `SalesBot`: CRM read + external email | A recorded **LLM-generalized** customer-data egress combination outside the deterministic crown-jewel rules. |
 
