@@ -13,6 +13,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   precision/recall and hallucinated-citation rate separately from the deterministic
   gate. Cached live `gpt-oss-120b` result: 8/8 recall, 0/8 false positives, 0
   hallucinated citations; CI re-verifies the cache offline.
+- **Known-server capability mapping in the MCP adapter**: eleven widely used MCP
+  servers (filesystem, GitHub, Slack, PostgreSQL, SQLite, fetch, Brave Search,
+  Google Drive, memory, Puppeteer, Sentry), recognized by exact package identifier
+  in `command`/`args`, now import as their documented capability sets instead of
+  one opaque bundle. Unrecognized servers keep conservative server-bundle
+  granularity, provenance disclaimers are embedded in every mapped node, and a
+  realistic credential-free sample lives at `examples/claude_desktop_config.json`.
 - Architecture documentation (`docs/ARCHITECTURE.md`) with system, Granted/Used/Needed,
   detect→close→prove, and domain-model diagrams; a **mapping of each check to the OWASP
   LLM Top 10 (2025)** — over-privilege / toxic-combos / escalation as facets of

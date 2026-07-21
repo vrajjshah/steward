@@ -257,6 +257,12 @@ Steward includes a conservative MCP adapter:
 steward analyze --mcp ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
 
+For a small registry of widely used servers — filesystem, GitHub, Slack, PostgreSQL, SQLite, fetch, Brave Search, Google Drive, memory, Puppeteer, Sentry — the adapter recognizes the **exact package identifier** in the server's `command`/`args` and imports that package's **documented capability set** as individual tools (e.g. the GitHub server becomes *read repositories*, *create/update issues and PRs*, and *push repository content* instead of one opaque bundle). That gives the analysis real read/write/egress texture to reason about. Honest limits, stated in every imported node and note: the mapping reflects the package's documented toolset, not runtime tool discovery; a different version, flag set, or allowlist may expose different tools; and a server merely *named* `github` is never assumed to be the GitHub server — only the package identifier matches. Unrecognized servers still import as one conservative server-level bundle. [`examples/claude_desktop_config.json`](examples/claude_desktop_config.json) is a realistic, credential-free sample that exercises both paths:
+
+```bash
+steward analyze --mcp examples/claude_desktop_config.json --no-llm
+```
+
 If the dashboard is running with `STEWARD_DEMO=1`, loading a real fleet or MCP config still runs the deterministic checks locally; only the built-in synthetic fleet uses the committed cache. No AWS call is needed for either path.
 
 #### Try the included MCP walkthrough
@@ -278,7 +284,7 @@ You can instead start the dashboard without `STEWARD_DEMO` and load the same fil
 
 The example intentionally contains no environment values, tokens, or live credentials. It demonstrates the import surface—not a claim that Steward discovered individual runtime tools from MCP.
 
-An MCP config declares servers rather than the runtime-discovered functions on those servers. The adapter faithfully represents each configured server as a server-level tool bundle; it does not invent individual capabilities. It strips environment values and credentials before producing the graph. The imported execution host starts unowned so a reviewer can assign accountability. For the most precise results, export named agent/tool metadata in the native format after discovery.
+An MCP config declares servers rather than the runtime-discovered functions on those servers. The adapter represents each recognized server at its documented-capability granularity and every other server as a server-level tool bundle; it does not invent capabilities beyond a recognized package's documentation. It strips environment values and credentials before producing the graph. The imported execution host starts unowned so a reviewer can assign accountability. For the most precise results, export named agent/tool metadata in the native format after discovery.
 
 Because an MCP config has no invocation telemetry, Steward marks usage as unavailable for that import and does **not** claim a server bundle is unused. Over-privilege findings require an observed usage log.
 

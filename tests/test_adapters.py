@@ -47,6 +47,76 @@ class SampleMcpGeneralizationFixture:
         return {"agents": []}
 
 
+def test_known_servers_expand_to_documented_capabilities() -> None:
+    """A real-shaped claude_desktop_config.json yields finer, honest tool nodes."""
+
+    imported = load_mcp_config("examples/claude_desktop_config.json")
+    tool_ids = {tool["id"] for tool in imported.tools["tools"]}
+
+    assert {
+        "mcp_filesystem_read_files",
+        "mcp_filesystem_write_files",
+        "mcp_filesystem_list_directories",
+        "mcp_github_read_repositories",
+        "mcp_github_write_issues_and_prs",
+        "mcp_github_push_repository_content",
+        "mcp_slack_read_messages",
+        "mcp_slack_post_messages",
+        "mcp_postgres_query_database_read_only",
+        "mcp_web_fetch_fetch_web_content",
+        # The unrecognized custom server stays a conservative bundle.
+        "mcp_internal_billing",
+    } == tool_ids
+
+    # The host holds every imported capability, telemetry stays unavailable,
+    # and no credential placeholder survives the import.
+    host = imported.fleet["agents"][0]
+    assert set(host["granted_tools"]) == tool_ids
+    assert host["usage_log_available"] is False
+    assert "REPLACE_WITH_YOUR_TOKEN" not in str(imported.public_dict())
+
+    # Every documented-capability node carries its provenance disclaimer.
+    for tool in imported.tools["tools"]:
+        if tool["id"] != "mcp_internal_billing":
+            assert "not from runtime tool discovery" in tool["description"]
+    notes = " ".join(imported.notes)
+    assert "documented capability sets" in notes
+    assert "server-bundle" in notes
+
+    # The import stays a valid, analyzable Steward graph.
+    fleet = Fleet.model_validate(imported.fleet)
+    tools = ToolCatalog.model_validate(imported.tools)
+    result = analyze_fleet(fleet, tools, enable_llm=False)
+    assert all(not citation_errors(f, fleet, tools=tools) for f in result.findings)
+
+
+def test_known_server_matching_ignores_display_names() -> None:
+    """A server merely *named* github must not inherit GitHub's capability map."""
+
+    imported = import_mcp_config(
+        {
+            "mcpServers": {
+                "github": {"command": "node", "args": ["/opt/custom/definitely-not-github.js"]}
+            }
+        }
+    )
+    assert [tool["id"] for tool in imported.tools["tools"]] == ["mcp_github"]
+
+
+def test_known_server_matching_tolerates_version_suffixes() -> None:
+    imported = import_mcp_config(
+        {
+            "mcpServers": {
+                "pinned-search": {
+                    "command": "npx",
+                    "args": ["-y", "@modelcontextprotocol/server-brave-search@1.2.3"],
+                }
+            }
+        }
+    )
+    assert [tool["id"] for tool in imported.tools["tools"]] == ["mcp_pinned_search_web_search"]
+
+
 def test_mcp_import_keeps_server_structure_and_drops_environment_values() -> None:
     imported = import_mcp_config(
         {
