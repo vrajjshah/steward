@@ -6,6 +6,8 @@
 
 **See what your AI agents can actually do — including the dangerous paths hiding in their permissions.**
 
+![Steward dashboard — a 30-agent fleet with 10 cited findings across two trust tiers](docs/dashboard.png)
+
 Steward is a small, open-source agent safety and blast-radius analyzer. Point it at an agent fleet's grants, tool use, ownership, and delegation topology. It computes each agent's **effective access**, detects dangerous combinations, and emits only findings that cite the real agent, tool, and delegation entities that caused them.
 
 The demo opens with a familiar failure mode: `SupportBot` can read customer PII and send email outside the company. That is a verified exfiltration path—not a hypothetical warning. The same engine is also an agentic identity-governance tool: effective-access analysis, segregation of duties (SoD), least privilege, ownership accountability, and access certification.
