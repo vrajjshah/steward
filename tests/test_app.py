@@ -301,3 +301,25 @@ def test_demo_cache_preserves_an_llm_generalized_source_label_without_a_model_ca
     assert generalized["source"] == "llm_generalized"
     assert generalized["source_label"] == "LLM-generalized"
     assert "The configured model proposed" in generalized["source_description"]
+
+
+def test_public_mode_blocks_arbitrary_path_load(tmp_path, monkeypatch) -> None:
+    """On a public host, /api/fleet/load must not read arbitrary server paths."""
+
+    monkeypatch.setenv("STEWARD_PUBLIC", "1")
+    client = TestClient(create_app(StewardService(demo_mode=True)))
+
+    outside = tmp_path / "attacker_fleet.json"
+    outside.write_text(
+        '{"schema_version": "0.1", "fleet_name": "x", "agents": []}', encoding="utf-8"
+    )
+    blocked = client.post(
+        "/api/fleet/load", json={"fleet_path": str(outside), "source_type": "fleet"}
+    )
+    assert blocked.status_code == 403
+
+    # A bundled example is still loadable, so the public demo stays interactive.
+    allowed = client.post(
+        "/api/fleet/load", json={"fleet_path": "examples/mcp.json", "source_type": "mcp"}
+    )
+    assert allowed.status_code == 200

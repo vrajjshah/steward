@@ -58,6 +58,36 @@ def _default_demo_path() -> Path:
     return _project_root() / "data" / "demo_results.json"
 
 
+def _public_mode() -> bool:
+    """Hosted/public-demo mode: lock the config-load endpoint to bundled files."""
+
+    return os.getenv("STEWARD_PUBLIC", "").strip().lower() in {"1", "true", "yes"}
+
+
+def _guard_loadable_path(candidate: Path) -> Path:
+    """In public mode, only allow loading bundled ``examples/`` and ``data/`` files.
+
+    Without this, ``POST /api/fleet/load`` accepts an arbitrary server path and
+    would become a file-read primitive on a shared host. Local (non-public) use
+    is unrestricted so a user can analyze a config anywhere on their own disk.
+    """
+
+    if not _public_mode():
+        return candidate
+    resolved = candidate.resolve()
+    for root in (_project_root() / "examples", _project_root() / "data"):
+        try:
+            resolved.relative_to(root.resolve())
+            return resolved
+        except ValueError:
+            continue
+    raise PermissionError(
+        "Loading arbitrary paths is disabled on the public demo; only bundled "
+        "examples/ and data/ files can be loaded. Run Steward locally to analyze "
+        "your own configuration."
+    )
+
+
 def _read_json(path: Path) -> Any:
     with path.open("r", encoding="utf-8") as handle:
         return json.load(handle)
@@ -355,8 +385,8 @@ class StewardService:
     ) -> dict[str, Any]:
         """Load a synthetic fleet or a locally supplied config adapter input."""
 
-        candidate_fleet = Path(fleet_path) if fleet_path else self.fleet_path
-        candidate_tools = Path(tools_path) if tools_path else self.tools_path
+        candidate_fleet = _guard_loadable_path(Path(fleet_path)) if fleet_path else self.fleet_path
+        candidate_tools = _guard_loadable_path(Path(tools_path)) if tools_path else self.tools_path
         if not candidate_fleet.is_file():
             raise FileNotFoundError(f"Fleet config not found: {candidate_fleet}")
 

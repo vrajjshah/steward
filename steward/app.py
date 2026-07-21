@@ -195,6 +195,8 @@ def create_app(service: StewardService | None = None) -> FastAPI:
                 tools_path=payload.tools_path,
                 source_type=payload.source_type,
             )
+        except PermissionError as error:
+            raise _http_error(error, status.HTTP_403_FORBIDDEN) from error
         except FileNotFoundError as error:
             raise _http_error(error, status.HTTP_404_NOT_FOUND) from error
         except (RuntimeError, ValueError) as error:
