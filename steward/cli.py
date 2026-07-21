@@ -18,6 +18,7 @@ from steward.policy_gen import load_policy, write_policy
 from steward.redaction import safe_json_dumps
 from steward.redteam import DemoMCPUpstream, run_exfiltration_scenario
 from steward.reporting import build_fleet_audit_report, render_markdown_report
+from steward.traces import TraceReconciliation, apply_usage, load_traces, reconcile
 
 app = typer.Typer(
     add_completion=False,
@@ -155,11 +156,58 @@ def _load_input(
     return fleet, tools, "fleet"
 
 
+def _echo_reconciliation(reconciliation: TraceReconciliation) -> None:
+    """Print the Granted vs. Used vs. Needed runtime summary."""
+
+    observed = [agent for agent in reconciliation.agents if agent.observed_in_trace]
+    typer.echo(
+        f"Runtime trace reconciliation ({reconciliation.source_name}: "
+        f"{reconciliation.events_total} events, {reconciliation.events_malformed} malformed, "
+        f"{len(observed)}/{len(reconciliation.agents)} agents observed)."
+    )
+    for agent in reconciliation.agents:
+        if agent.used_not_granted:
+            typer.echo(
+                f"- DRIFT {agent.agent_id}: used tools outside its effective access: "
+                f"{', '.join(agent.used_not_granted)}. Either the inventory is stale or the "
+                "runtime is not enforcing it."
+            )
+    for agent_id in reconciliation.unrecognized_agent_ids:
+        typer.echo(
+            f"- DRIFT trace names an agent absent from the inventory: {agent_id} "
+            "(retired identity still running, or a trace from another fleet)."
+        )
+    for agent_id, tool_ids in sorted(reconciliation.unrecognized_tool_ids.items()):
+        typer.echo(
+            f"- DRIFT {agent_id}: invoked tool ids absent from the catalog: {', '.join(tool_ids)}."
+        )
+    for agent in observed:
+        if agent.granted_never_used:
+            typer.echo(
+                f"- unused {agent.agent_id}: granted but never used in this window: "
+                f"{', '.join(agent.granted_never_used)}"
+            )
+        if agent.used_not_needed:
+            typer.echo(
+                f"- review {agent.agent_id}: used but not needed per declared purpose "
+                f"(model-assisted): {', '.join(agent.used_not_needed)}"
+            )
+    if not reconciliation.drift_detected:
+        typer.echo("- no drift: every observed invocation stayed within effective access.")
+
+
 @app.command()
 def analyze(
     fleet: Annotated[Path | None, typer.Option(help="Path to Steward fleet JSON.")] = None,
     tools: Annotated[Path | None, typer.Option(help="Path to tool catalog JSON.")] = None,
     mcp: Annotated[Path | None, typer.Option(help="Claude Desktop / Cursor mcp.json path.")] = None,
+    traces: Annotated[
+        Path | None,
+        typer.Option(
+            help="JSONL runtime trace (timestamp/agent_id/tool_id[/status] per line). "
+            "Fills the Used pillar and reports Granted vs. Used vs. Needed drift."
+        ),
+    ] = None,
     output: Annotated[
         Path | None,
         typer.Option("--output", "-o", help="Write a redacted JSON result to this path."),
@@ -183,6 +231,15 @@ def analyze(
     """Analyze a native fleet or MCP config and print a concise summary."""
 
     loaded_fleet, loaded_tools, source = _load_input(fleet, tools, mcp)
+    trace_log = None
+    if traces is not None:
+        try:
+            trace_log = load_traces(traces)
+        except (OSError, ValueError) as exc:
+            raise typer.BadParameter(str(exc), param_hint="--traces") from exc
+        # Observed usage replaces the inventory's usage log for observed
+        # agents, so the over-privilege check runs on real runtime data.
+        loaded_fleet = apply_usage(loaded_fleet, trace_log, loaded_tools)
     result = analyze_fleet(loaded_fleet, loaded_tools, enable_llm=False if no_llm else None)
     typer.echo(
         f"Analyzed {len(loaded_fleet.agents)} agents / {len(loaded_tools.tools)} tools "
@@ -193,6 +250,8 @@ def analyze(
             f"- [{finding.source}] [{finding.severity.upper()}] "
             f"{finding.agent_id}: {finding.title}"
         )
+    if trace_log is not None:
+        _echo_reconciliation(reconcile(result, trace_log))
 
     appended = _append_findings_to_ledger(_initialized_ledger(state_dir), result.findings)
     if appended:

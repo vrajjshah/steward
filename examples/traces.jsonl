@@ -1,0 +1,11 @@
+{"timestamp": "2026-07-14T09:02:11Z", "agent_id": "support_bot", "tool_id": "read_customer_pii", "status": "ok"}
+{"timestamp": "2026-07-14T09:02:19Z", "agent_id": "support_bot", "tool_id": "send_external_email", "status": "ok"}
+{"timestamp": "2026-07-14T10:15:40Z", "agent_id": "report_bot", "tool_id": "read_db", "status": "ok"}
+{"timestamp": "2026-07-15T10:15:02Z", "agent_id": "report_bot", "tool_id": "read_db", "status": "ok"}
+{"timestamp": "2026-07-15T11:30:57Z", "agent_id": "sales_bot", "tool_id": "read_crm", "status": "ok"}
+{"timestamp": "2026-07-15T11:31:08Z", "agent_id": "sales_bot", "tool_id": "send_external_email", "status": "ok"}
+{"timestamp": "2026-07-16T08:44:23Z", "agent_id": "scheduler_bot", "tool_id": "read_calendar", "status": "ok"}
+{"timestamp": "2026-07-16T08:45:01Z", "agent_id": "scheduler_bot", "tool_id": "create_calendar_event", "status": "ok"}
+{"timestamp": "2026-07-16T23:12:44Z", "agent_id": "scheduler_bot", "tool_id": "export_data", "status": "ok"}
+{"timestamp": "2026-07-17T02:03:19Z", "agent_id": "retired_bot", "tool_id": "read_db", "status": "error"}
+{"timestamp": "2026-07-17T09:55:31Z", "agent_id": "support_bot", "tool_id": "legacy_crm_export", "status": "ok"}

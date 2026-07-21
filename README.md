@@ -290,6 +290,22 @@ Because an MCP config has no invocation telemetry, Steward marks usage as unavai
 
 An OpenAI Agents SDK project can use that same native export shape: agents, their declared purpose, callable tool metadata, direct grants, and handoff/delegation edges. Runtime data and secrets should not be exported.
 
+### Runtime traces — the "Used" pillar
+
+Grants say what an agent *may* do; traces say what it *did*. Point `--traces` at a JSONL execution log — one event per line with `timestamp`, `agent_id`, `tool_id`, and optional `status`, a shape that maps directly from OpenTelemetry GenAI spans or any agent framework's invocation log:
+
+```bash
+steward analyze --no-llm --traces examples/traces.jsonl
+```
+
+Observed usage fills the **Used** pillar for the agents that appear in the trace window (agents outside it keep "telemetry unavailable" rather than being misread as unused), the over-privilege check runs on real runtime data, and the reconciliation report adds three signals:
+
+- **granted but never used** — standing access with no observed invocation in the window: the revocation candidate list;
+- **used but not granted** — an invocation outside the agent's *effective* access, reported as `DRIFT`: either the inventory is stale or the runtime is not enforcing it. This deliberately cannot be a finding — the citation verifier rejects evidence outside effective access by design — so it surfaces as reconciliation drift;
+- **used but not needed** — observed use of a capability the model tier inferred the declared purpose does not require; model-assisted review context, labelled as such.
+
+Events naming unknown agents or tools stay visible as drift lines (a retired identity still running is itself a governance signal). Tool-call arguments, results, and prompts are ignored at parse time and never retained — trace ingestion reads identity metadata only. [`examples/traces.jsonl`](examples/traces.jsonl) demonstrates all three signals against the demo fleet.
+
 ## Certification and IGA reporting
 
 Every agent gets a risk card with identity, owner, direct/effective access, findings, finding-source labels, risk tier, recommended action, and an approve/revoke/flag review state. The fleet report maps the same safety signals to enterprise controls:

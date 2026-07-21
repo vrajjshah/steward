@@ -20,6 +20,14 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   one opaque bundle. Unrecognized servers keep conservative server-bundle
   granularity, provenance disclaimers are embedded in every mapped node, and a
   realistic credential-free sample lives at `examples/claude_desktop_config.json`.
+- **Runtime-trace ingestion — the "Used" pillar** (`steward analyze --traces`,
+  `steward/traces.py`): a minimal JSONL event format (timestamp/agent_id/tool_id/status,
+  mappable from OpenTelemetry GenAI spans) fills observed usage for traced agents,
+  drives the over-privilege check with runtime data, and reconciles Granted vs. Used
+  vs. Needed: *granted-but-never-used*, *used-but-not-granted* (drift — deliberately a
+  reconciliation signal, not a finding, because citation verification rejects evidence
+  outside effective access), and model-assisted *used-but-not-needed*. Payload fields
+  are dropped at parse time; sample trace at `examples/traces.jsonl`.
 - Architecture documentation (`docs/ARCHITECTURE.md`) with system, Granted/Used/Needed,
   detect→close→prove, and domain-model diagrams; a **mapping of each check to the OWASP
   LLM Top 10 (2025)** — over-privilege / toxic-combos / escalation as facets of
@@ -39,7 +47,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   (34/34) tool classification. Credential-shaped strings are still masked.
 
 ### Planned
-- Ingestion of real agent execution traces (the "Used" pillar) with drift detection.
 - Live connectors for agent registries, MCP gateways, and cloud IAM.
 - Continuous access-certification campaigns and remediation workflows.
 

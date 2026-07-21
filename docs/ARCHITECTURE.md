@@ -63,12 +63,33 @@ flowchart LR
 
 - **Granted** is computed deterministically from the inventory (direct grants ∪
   everything reachable through delegation).
-- **Used** comes from the agent's usage log; when a source (e.g. an MCP config)
-  has no telemetry, "Used" is marked *unavailable* and over-privilege is not
-  claimed.
+- **Used** comes from the agent's usage log — or, at runtime scale, from an
+  ingested execution trace; when a source (e.g. an MCP config) has no
+  telemetry, "Used" is marked *unavailable* and over-privilege is not claimed.
 - **Needed** is *inferred* by the model from the agent's declared purpose. It is
   the one signal that is model-assisted rather than graph-derived, so it is
   labelled separately and never gated as ground truth.
+
+### Runtime traces (`steward analyze --traces`)
+
+`steward/traces.py` ingests a minimal JSONL trace — one event per line with
+`timestamp`, `agent_id`, `tool_id`, and optional `status`, a shape that maps
+directly from OpenTelemetry GenAI spans (`gen_ai.agent.id`, `gen_ai.tool.name`)
+or any framework's invocation log. Payload-bearing fields (arguments, results,
+prompts) are dropped at parse time, never retained. Observed usage replaces the
+inventory's usage log for observed agents only — an agent absent from the trace
+window keeps *unavailable* rather than being misread as unused — and
+reconciliation then reports three runtime signals:
+
+| Signal | Derivation | Trust level |
+|---|---|---|
+| **Granted but never used** | direct grants − observed use, per observed agent | deterministic; feeds the over-privilege check |
+| **Used but not granted** | observed use − *effective* access | deterministic drift: a stale inventory or an unenforced one. Deliberately **not** a `Finding` — the citation verifier rejects evidence outside effective access by design, so this surfaces as a reconciliation drift line instead |
+| **Used but not needed** | observed use ∩ (effective − model-inferred Needed) | model-assisted review context, labelled as such |
+
+Events naming an agent or tool the inventory has never heard of stay visible as
+unrecognized entries (a retired identity still running is itself a governance
+signal) rather than being silently dropped.
 
 ## 3. System architecture
 
@@ -337,13 +358,15 @@ Steward is a security tool, so it holds itself to the standard it audits.
 or a compliance certification. The enforcement demo is a deliberately narrow
 policy-evaluating pass-through — no OAuth/OIDC, no multi-upstream federation, no
 runtime payload inspection. An MCP config declares *servers*, not their
-runtime-discovered functions, so MCP imports are analyzed at the server-bundle
-level; the richest analysis uses the native fleet export.
+runtime-discovered functions: recognized packages import at documented-capability
+granularity, everything else at the server-bundle level; the richest analysis
+uses the native fleet export. Trace ingestion is batch-file reconciliation of an
+observed window, not continuous monitoring.
 
 **Where it goes next.**
 
-- **Used pillar at scale** — ingest real agent execution traces to reconcile
-  Granted vs. Used vs. Needed continuously, with drift detection.
+- **Used pillar continuously** — stream execution traces instead of batch files,
+  with windowed drift alerts on used-but-not-granted events.
 - **Live connectors** — pull inventories from agent registries, MCP gateways, and
   cloud IAM (AWS IAM, Entra Agent ID, Okta, SailPoint) instead of file exports.
 - **Continuous certification** — recurring access-review campaigns and
