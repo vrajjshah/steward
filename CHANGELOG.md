@@ -6,62 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-### Added
-- **Labeled LLM-tier accuracy benchmark** (`evals/benchmark/`, `make llm-benchmark`):
-  20 ground-truth scenarios — 8 in-scope toxic sensitive-read + external-egress pairs,
-  8 benign near-misses, 4 out-of-scope toxic pairs — measuring the model tier's
-  precision/recall and hallucinated-citation rate separately from the deterministic
-  gate. Cached live `gpt-oss-120b` result: 8/8 recall, 0/8 false positives, 0
-  hallucinated citations; CI re-verifies the cache offline.
-- **Known-server capability mapping in the MCP adapter**: eleven widely used MCP
-  servers (filesystem, GitHub, Slack, PostgreSQL, SQLite, fetch, Brave Search,
-  Google Drive, memory, Puppeteer, Sentry), recognized by exact package identifier
-  in `command`/`args`, now import as their documented capability sets instead of
-  one opaque bundle. Unrecognized servers keep conservative server-bundle
-  granularity, provenance disclaimers are embedded in every mapped node, and a
-  realistic credential-free sample lives at `examples/claude_desktop_config.json`.
-- **Runtime-trace ingestion — the "Used" pillar** (`steward analyze --traces`,
-  `steward/traces.py`): a minimal JSONL event format (timestamp/agent_id/tool_id/status,
-  mappable from OpenTelemetry GenAI spans) fills observed usage for traced agents,
-  drives the over-privilege check with runtime data, and reconciles Granted vs. Used
-  vs. Needed: *granted-but-never-used*, *used-but-not-granted* (drift — deliberately a
-  reconciliation signal, not a finding, because citation verification rejects evidence
-  outside effective access), and model-assisted *used-but-not-needed*. Payload fields
-  are dropped at parse time; sample trace at `examples/traces.jsonl`.
-- **Cost analysis** (`docs/COST.md`): measured per-analysis call profile and model
-  spend from the project's own cost/latency log (~$0.008 per enriched analysis;
-  the deterministic tier is $0), with projections and the binding architectural
-  change at 100 / 1K / 10K / 100K analyses.
-- Architecture documentation (`docs/ARCHITECTURE.md`) with system, Granted/Used/Needed,
-  detect→close→prove, and domain-model diagrams; a **mapping of each check to the OWASP
-  LLM Top 10 (2025)** — over-privilege / toxic-combos / escalation as facets of
-  **LLM06 Excessive Agency**, and the exfiltration path as **LLM02 Sensitive Information
-  Disclosure**.
-- Contributing guide, security policy, README badges, and CI that now runs lint + tests + eval.
-- Expanded the synthetic fleet to **30 agents** across ~20 departments, adding a **two-hop
-  delegation chain** (ExecBriefingBot → ChiefOfStaffBot → FinanceBot) that surfaces a deeper
-  multi-hop escalation finding. Answer key and demo cache regenerated in lockstep; the
-  deterministic gate remains 1.000.
-
-### Fixed
-- **Needed-capability inference now runs in bounded agent batches** (six agents per
-  request, mirroring tool-classification recovery). The whole-fleet request had
-  outgrown the structured-output token budget when the fleet expanded to 30 agents,
-  so Needed inference silently failed and the dashboard's Granted vs. Needed view
-  was empty on the flagship fleet. The regenerated demo cache now records Needed
-  inference for all 30 agents; a batch failure degrades to a partial result instead
-  of erasing the signal.
-- The high-entropy secret heuristic no longer masks long snake/kebab-case word
-  identifiers (e.g. `read_financial_statements`) in outbound LLM payloads. Two
-  synthetic-fleet tools were previously unclassifiable because their ids arrived
-  at the model as `[REDACTED]`; the regenerated demo cache now records complete
-  (34/34) tool classification. Credential-shaped strings are still masked.
-
 ### Planned
 - Live connectors for agent registries, MCP gateways, and cloud IAM.
 - Continuous access-certification campaigns and remediation workflows.
+- Streaming trace ingestion with windowed drift alerts.
 
-## [0.1.0] — 2026-07-18
+## [0.1.0] — 2026-07-21
 
 First public release.
 
@@ -77,9 +27,34 @@ First public release.
   model-generalization tier (`gpt-oss-120b` on Amazon Bedrock, any Converse model
   via `MODEL_*`) that proposes toxic combinations beyond the hardcoded rules and
   is measured separately.
+- **Golden-set evaluation** — a labeled 30-agent synthetic fleet (20 clean
+  controls, ~20 departments, including a two-hop delegation escalation chain)
+  with a precision/recall + citation-validity gate wired into CI.
+- **Labeled LLM-tier accuracy benchmark** (`evals/benchmark/`, `make llm-benchmark`):
+  20 ground-truth scenarios — 8 in-scope toxic sensitive-read + external-egress pairs,
+  8 benign near-misses, 4 out-of-scope toxic pairs — measuring the model tier's
+  precision/recall and hallucinated-citation rate separately from the deterministic
+  gate. Cached live `gpt-oss-120b` result: 8/8 recall, 0/8 false positives, 0
+  hallucinated citations; CI re-verifies the cache offline.
 - **Secret-redaction boundary** — `env` values and secret-shaped strings are
   stripped before any model call, log, cache, or ledger write
   (`steward/redaction.py`).
+- **MCP config adapter** for Claude Desktop / Cursor `mcp.json` with a
+  **known-server capability registry**: eleven widely used MCP servers
+  (filesystem, GitHub, Slack, PostgreSQL, SQLite, fetch, Brave Search, Google
+  Drive, memory, Puppeteer, Sentry), recognized by exact package identifier in
+  `command`/`args`, import as their documented capability sets with provenance
+  disclaimers embedded in every mapped node; unrecognized servers import as
+  conservative server-level bundles. Realistic credential-free sample at
+  `examples/claude_desktop_config.json`.
+- **Runtime-trace ingestion — the "Used" pillar** (`steward analyze --traces`,
+  `steward/traces.py`): a minimal JSONL event format (timestamp/agent_id/tool_id/status,
+  mappable from OpenTelemetry GenAI spans) fills observed usage for traced agents,
+  drives the over-privilege check with runtime data, and reconciles Granted vs. Used
+  vs. Needed: *granted-but-never-used*, *used-but-not-granted* (drift — deliberately a
+  reconciliation signal, not a finding, because citation verification rejects evidence
+  outside effective access), and model-assisted *used-but-not-needed*. Payload fields
+  are dropped at parse time; sample trace at `examples/traces.jsonl`.
 - **Least-privilege policy generation** (default-deny) from cited findings
   (`steward/policy_gen.py`) and a narrow **MCP enforcement gate**
   (`steward/enforce.py`).
@@ -93,12 +68,26 @@ First public release.
   (`steward/incident_grounding.py`).
 - **Reporting surfaces** — FastAPI dashboard, per-agent certification risk cards,
   and JSON/Markdown/HTML report exports.
-- **MCP config adapter** for Claude Desktop / Cursor `mcp.json`, importing each
-  server as a conservative server-level capability bundle.
-- **Golden-set evaluation** — a labeled 21-agent synthetic fleet (13 clean
-  controls) with a precision/recall + citation-validity gate wired into CI.
 - **Zero-key demo mode** (`STEWARD_DEMO=1`) serving a committed analysis cache so
   the full dashboard and detect→close→prove flow run with no cloud account.
+- **Documentation** — architecture deep-dive with native Mermaid diagrams and an
+  OWASP LLM Top 10 (2025) mapping (`docs/ARCHITECTURE.md`), a measured cost
+  analysis with 100/1K/10K/100K scaling projections (`docs/COST.md`), an audience
+  and automation-rationale guide (`docs/USERS.md`), contributing guide, security
+  policy, and CI that runs lint + tests + eval on every push.
+
+### Fixed
+- **Needed-capability inference runs in bounded agent batches** (six agents per
+  request, mirroring tool-classification recovery). A whole-fleet request
+  outgrew the structured-output token budget at 30 agents, so Needed inference
+  silently failed and the Granted vs. Needed view was empty; the committed demo
+  cache now records Needed inference for all 30 agents, and a batch failure
+  degrades to a partial result instead of erasing the signal.
+- The high-entropy secret heuristic no longer masks long snake/kebab-case word
+  identifiers (e.g. `read_financial_statements`) in outbound LLM payloads. Two
+  synthetic-fleet tools were previously unclassifiable because their ids arrived
+  at the model as `[REDACTED]`; the committed demo cache now records complete
+  (34/34) tool classification. Credential-shaped strings are still masked.
 
 [Unreleased]: https://github.com/vrajjshah/steward/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/vrajjshah/steward/releases/tag/v0.1.0

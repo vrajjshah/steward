@@ -344,6 +344,23 @@ make eval
 
 GitHub Actions runs lint plus `make eval` on every push and pull request. The deterministic synthetic thresholds are deliberately `1.0`: a regression, invalid citation, or a false positive on a clean control fails CI. LLM-generalized proposals are graph-citation verified at runtime, but they are outside this v0.1 golden-set precision gate.
 
+## How Steward compares
+
+Honest positioning — what Steward is next to the things it will be compared with:
+
+| | Steward | Platform IGA (SailPoint, Saviynt, Okta) | Cloud IAM analyzers (AWS IAM Access Analyzer, Entra) | "Ask a chatbot to review the config" |
+|---|---|---|---|---|
+| Population | AI agents, tools, delegation edges | Human identities first; agent identity emerging | Cloud principals, roles, policies | Whatever you paste in |
+| Deployment | Self-hosted OSS (MIT), runs locally in minutes | Enterprise platforms, licensed, connector-driven rollouts | Bundled with the cloud provider | A chat window |
+| Effective access | Deterministic graph closure (direct ∪ delegated) | Role/entitlement models at platform depth | Policy-evaluation depth within that cloud | The model's impression |
+| Evidence | Every finding cites verified graph entities; hallucinations are structurally suppressed | Platform audit trails | Provider-verified findings | None — assertions in prose |
+| Regression proof | Public CI gate: precision = recall = 1.000 on a labeled fixture + a measured model-tier benchmark | Vendor QA | Provider QA | Not reproducible |
+| Record | Ed25519-signed, offline-verifiable audit ledger | Platform-internal | Provider logs | Chat history |
+
+**Versus platform IGA:** not a replacement. SailPoint, Saviynt, and Okta bring HR-driven lifecycle, hundreds of connectors, and campaign management at enterprise scale; Steward brings an agent-native access model those platforms are still growing into — tool grants, delegation topology, MCP configs — in an open codebase you can run before any procurement conversation. If your agent fleet governance eventually lands in a platform, Steward is the fastest way to know *today* what your agents can reach.
+
+**Versus asking a model directly:** a chat answer about your config is advice with no floor under it. Steward's deterministic tier does not vary run to run, its model tier cannot surface a finding whose evidence fails graph verification, its accuracy is measured in public on labeled fixtures, and its reviews leave a signed, tamper-evident record. *A prompt is advice; Steward is evidence.*
+
 ## v0.1 boundaries
 
 The analyzer is configuration-time analysis, not an authentication system or
@@ -360,6 +377,7 @@ cited route, and a signed record proving the demonstration decision occurred.
 
 - [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architecture, diagrams, and the design decisions behind the trust model
 - [`docs/COST.md`](docs/COST.md) — measured per-analysis model cost and the architecture changes at 100/1K/10K/100K analyses
+- [`docs/USERS.md`](docs/USERS.md) — who Steward serves, who it doesn't (yet), and why this is an automation problem
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — development setup and the trust-gate philosophy
 - [`SECURITY.md`](SECURITY.md) — security guarantees and how to report a vulnerability
 - [`CHANGELOG.md`](CHANGELOG.md) — release notes
