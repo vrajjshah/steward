@@ -31,6 +31,7 @@ from steward.enforce import create_enforcement_app
 from steward.ledger import AuditLedger, LedgerError, LedgerKeyError
 from steward.loaders import load_inventory
 from steward.models import Fleet, ToolCatalog
+from steward.notify import NotifyError, build_drift_payload, post_drift_notification
 from steward.pipeline import analyze_fleet
 from steward.policy_gen import generate_policy as build_policy
 from steward.policy_gen import load_policy, write_policy
@@ -295,6 +296,14 @@ def analyze(
             help="Custom SoD rule-pack YAML to apply on top of the built-in rules. Repeatable.",
         ),
     ] = None,
+    notify_url: Annotated[
+        str | None,
+        typer.Option(
+            "--notify-url",
+            help="With --traces: POST a redacted, metadata-only JSON drift summary to this "
+            "URL when runtime drift is detected (stdlib urllib; no payload data is sent).",
+        ),
+    ] = None,
     state_dir: Annotated[
         Path,
         typer.Option(
@@ -316,6 +325,8 @@ def analyze(
         raise typer.BadParameter(
             "--fail-on-drift requires --traces.", param_hint="--fail-on-drift"
         )
+    if notify_url and traces is None:
+        raise typer.BadParameter("--notify-url requires --traces.", param_hint="--notify-url")
 
     loaded_fleet, loaded_tools, source = _load_input(fleet, tools, mcp)
     trace_log = None
@@ -344,6 +355,16 @@ def analyze(
     if trace_log is not None:
         reconciliation = reconcile(result, trace_log)
         _echo_reconciliation(reconciliation)
+        if notify_url and reconciliation.drift_detected:
+            payload = build_drift_payload(
+                reconciliation, fleet_agent_count=len(loaded_fleet.agents)
+            )
+            try:
+                status_code = post_drift_notification(notify_url, payload)
+                typer.echo(f"Posted drift notification to {notify_url} (HTTP {status_code}).")
+            except NotifyError as exc:
+                # A failed webhook must not fail the analysis the human is reading.
+                typer.echo(f"Drift notification not delivered: {exc}", err=True)
 
     # CI gating happens after every report/output above has been written, so a
     # failing build still carries the full evidence for the human reading it.

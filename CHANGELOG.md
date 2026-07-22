@@ -7,6 +7,17 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Benchmark multi-run aggregation (`llm-benchmark --live --runs N`)**: the
+  accuracy benchmark can now run several times and record mean/min/max per
+  metric in the cached result's provenance, so the numbers reflect spread
+  rather than a single lucky sample. Default is one run (output unchanged); the
+  pure aggregation is unit-tested with no model call.
+- **Drift webhook (`analyze --traces --notify-url`)**: when runtime-trace
+  reconciliation detects drift (access used outside effective grants, or an
+  unknown identity), Steward POSTs a redacted, metadata-only JSON summary to a
+  monitoring URL using only the standard library — agent/tool ids and counts,
+  never tool-call arguments, results, or prompts. A failed webhook is reported
+  but never fails the analysis.
 - **Print/PDF-friendly audit report**: the report page gained a "Print / PDF"
   button and an expanded print stylesheet — page margins, section and table
   break-avoidance, headings kept with their content, black-on-white overrides

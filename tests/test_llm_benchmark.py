@@ -10,12 +10,17 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from evals.llm_benchmark import (
     FLEET_PATH,
     LABEL_VALUES,
     RESULTS_PATH,
     TOOLS_PATH,
+    BenchmarkError,
+    aggregate_metrics,
     load_scenarios,
+    run_live,
     score,
     validate_benchmark_inventory,
     verify_cached,
@@ -81,3 +86,27 @@ def test_score_counts_a_benign_flag_as_false_positive() -> None:
     # The fabricated finding cites real granted tools, so it is not a
     # hallucination — it is a precision failure.
     assert report["metrics"]["hallucinated_surfaced_findings"] == 0
+
+
+def test_aggregate_metrics_mean_min_max() -> None:
+    agg = aggregate_metrics(
+        [
+            {"recall": 1.0, "precision": 0.9, "flagged": True},
+            {"recall": 0.8, "precision": 1.0, "flagged": False},
+        ]
+    )
+    assert agg["runs"] == 2
+    assert agg["per_metric"]["recall"] == {"mean": 0.9, "min": 0.8, "max": 1.0}
+    assert agg["per_metric"]["precision"] == {"mean": 0.95, "min": 0.9, "max": 1.0}
+    # Booleans are not aggregated as numbers.
+    assert "flagged" not in agg["per_metric"]
+
+
+def test_aggregate_metrics_empty() -> None:
+    assert aggregate_metrics([]) == {"runs": 0, "per_metric": {}}
+
+
+def test_run_live_rejects_non_positive_runs() -> None:
+    # Guards before any model call, so this is CI-safe (no Bedrock).
+    with pytest.raises(BenchmarkError, match="at least 1"):
+        run_live(RESULTS_PATH, runs=0)

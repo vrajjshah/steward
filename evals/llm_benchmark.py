@@ -316,16 +316,64 @@ def _print_report(report: Mapping[str, Any]) -> None:
         f"entities, {raw['not_effective_proposals']} cited non-effective access (all blocked by the "
         "citation gate before output)"
     )
+    aggregate = report.get("runs_aggregate")
+    if aggregate and aggregate.get("runs", 0) > 1:
+        per_metric = aggregate["per_metric"]
+        print(f"aggregate over {aggregate['runs']} runs (mean [min, max]):")
+        for key in ("recall", "precision", "hallucinated_citation_rate"):
+            stats = per_metric.get(key)
+            if stats:
+                print(
+                    f"  {key}: {stats['mean']:.3f} [{stats['min']:.3f}, {stats['max']:.3f}]"
+                )
     for outcome in report["scenario_outcomes"]:
         marker = "FLAGGED" if outcome["flagged"] else "clean  "
         print(f"  [{outcome['label']:>18}] {marker} {outcome['agent_id']} ({outcome['category']})")
 
 
-def run_live(output_path: Path = RESULTS_PATH) -> int:
+def aggregate_metrics(runs: Sequence[Mapping[str, Any]]) -> dict[str, Any]:
+    """Aggregate per-metric mean/min/max across several benchmark runs.
+
+    A single live run can't distinguish a robust model from a lucky one. When
+    the benchmark is run more than once, this reduces the numeric metrics of
+    each run to mean/min/max so the provenance carries the *spread*, not one
+    sample. Pure and side-effect-free, so it is unit-tested without any model
+    call.
+    """
+
+    materialized = [dict(run) for run in runs]
+    if not materialized:
+        return {"runs": 0, "per_metric": {}}
+    numeric_keys = [
+        key
+        for key, value in materialized[0].items()
+        if isinstance(value, (int, float)) and not isinstance(value, bool)
+    ]
+    per_metric: dict[str, dict[str, float]] = {}
+    for key in numeric_keys:
+        values = [
+            float(run[key])
+            for run in materialized
+            if isinstance(run.get(key), (int, float)) and not isinstance(run.get(key), bool)
+        ]
+        if not values:
+            continue
+        per_metric[key] = {
+            "mean": round(sum(values) / len(values), 4),
+            "min": min(values),
+            "max": max(values),
+        }
+    return {"runs": len(materialized), "per_metric": per_metric}
+
+
+def run_live(output_path: Path = RESULTS_PATH, *, runs: int = 1) -> int:
     from steward.findings import analyze_fleet as deterministic_analyze_fleet
     from steward.llm import create_llm
     from steward.loaders import load_inventory
     from steward.pipeline import analyze_fleet
+
+    if runs < 1:
+        raise BenchmarkError("--runs must be at least 1")
 
     scenarios = load_scenarios()
     fleet, tools = load_inventory(FLEET_PATH, TOOLS_PATH)
@@ -338,21 +386,30 @@ def run_live(output_path: Path = RESULTS_PATH) -> int:
             f"{[finding.id for finding in deterministic.findings]}"
         )
 
-    llm = RecordingLLM(inner=create_llm())
-    result = analyze_fleet(fleet, tools, llm=llm, enable_llm=True)
-    llm_findings = _llm_findings(result.findings)
-
     fleet_doc = json.loads(FLEET_PATH.read_text(encoding="utf-8"))
     tools_doc = json.loads(TOOLS_PATH.read_text(encoding="utf-8"))
-    report = score(scenarios, llm_findings, fleet_doc, tools_doc, llm.raw_proposals)
 
+    per_run_metrics: list[Mapping[str, Any]] = []
+    llm = result = llm_findings = report = None
+    for index in range(runs):
+        if runs > 1:
+            print(f"benchmark run {index + 1}/{runs}...")
+        llm = RecordingLLM(inner=create_llm())
+        result = analyze_fleet(fleet, tools, llm=llm, enable_llm=True)
+        llm_findings = _llm_findings(result.findings)
+        report = score(scenarios, llm_findings, fleet_doc, tools_doc, llm.raw_proposals)
+        per_run_metrics.append(report["metrics"])
+
+    # The last run is the canonical cache (verify recomputes from its findings);
+    # the aggregate captures the spread across every run.
     enrichment = result.metadata.get("llm_enrichment", {})
     model_ids = sorted({llm.model_id("terra"), llm.model_id("sol")})
     backend = os.getenv("LLM_BACKEND", "bedrock").strip().lower() or "bedrock"
     model_label = " + ".join(model_ids)
+    runs_note = "" if runs == 1 else f", aggregated over {runs} runs"
     report_out = {
         "benchmark_version": "0.1",
-        "mode": f"cached live result ({model_label} via {backend})",
+        "mode": f"cached live result ({model_label} via {backend}{runs_note})",
         "backend": backend,
         "model_ids": model_ids,
         "disclosure": (
@@ -366,6 +423,8 @@ def run_live(output_path: Path = RESULTS_PATH) -> int:
         **report,
         "surfaced_findings": llm_findings,
     }
+    if runs > 1:
+        report_out["runs_aggregate"] = aggregate_metrics(per_run_metrics)
     # Guard against the id-level redaction corruption the demo-cache regen
     # script exists to avoid. Model prose may legitimately contain a redaction
     # marker (narratives pass through redact_text), so only ids are checked.
@@ -435,9 +494,16 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Where a --live run writes its result. Point elsewhere for A/B runs so the "
         "committed cache is untouched; verification always reads the committed cache.",
     )
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=1,
+        help="With --live: run the benchmark this many times and record mean/min/max per "
+        "metric in the provenance, so the numbers reflect spread, not a single sample.",
+    )
     args = parser.parse_args(argv)
     try:
-        return run_live(args.output) if args.live else verify_cached()
+        return run_live(args.output, runs=args.runs) if args.live else verify_cached()
     except Exception as exc:
         print(f"BENCHMARK_ERROR: {exc}", file=sys.stderr)
         return 1
