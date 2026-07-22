@@ -1,12 +1,15 @@
 # Steward
 
+[![Live demo](https://img.shields.io/badge/live%20demo-online-brightgreen)](https://steward-production-19c1.up.railway.app/)
 [![Steward trust gate](https://github.com/vrajjshah/steward/actions/workflows/eval.yml/badge.svg)](https://github.com/vrajjshah/steward/actions/workflows/eval.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)
 
 **See what your AI agents can actually do — including the dangerous paths hiding in their permissions.**
 
-![Steward dashboard — a 30-agent fleet with 10 cited findings across two trust tiers](docs/dashboard.png)
+[![Steward dashboard — a 30-agent fleet with 10 cited findings across two trust tiers](docs/dashboard.png)](https://steward-production-19c1.up.railway.app/)
+
+**▶️ [Try the live demo](https://steward-production-19c1.up.railway.app/)** — a zero-key dashboard; nothing to install.
 
 Steward is a small, open-source agent safety and blast-radius analyzer — **non-human identity (NHI) governance for AI agents**. Point it at an agent fleet's grants, tool use, ownership, and delegation topology. It computes each agent's **effective access**, detects dangerous combinations, and emits only findings that cite the real agent, tool, and delegation entities that caused them. Agents are identities; Steward brings them the discipline — SoD, least privilege, certification, accountable ownership — that human identities already get.
 
