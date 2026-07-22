@@ -1,0 +1,14 @@
+{
+  "name": "Support triage",
+  "agents": [
+    {"id": "triage", "name": "Triage Agent", "owner": "Support", "tools": ["read_crm"], "handoffs": ["billing", "tech"]},
+    {"id": "billing", "name": "Billing Agent", "owner": "Support", "tools": ["read_customer_pii", "send_external_email"], "handoffs": []},
+    {"id": "tech", "name": "Tech Agent", "owner": "Support", "tools": ["web_search"], "handoffs": []}
+  ],
+  "tools": [
+    {"id": "read_crm", "name": "Read CRM", "description": "Reads customer relationship records."},
+    {"id": "read_customer_pii", "name": "Read customer PII", "description": "Reads customer personal data."},
+    {"id": "send_external_email", "name": "Send external email", "description": "Sends email outside the organization."},
+    {"id": "web_search", "name": "Web search", "description": "Searches the public web."}
+  ]
+}

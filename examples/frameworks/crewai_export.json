@@ -1,0 +1,13 @@
+{
+  "framework": "crewai",
+  "crew_name": "Finance operations crew",
+  "agents": [
+    {"id": "manager", "role": "Operations Manager", "owner": "Finance", "tools": [], "allow_delegation": true},
+    {"id": "ap_clerk", "role": "AP Clerk", "owner": "Finance", "tools": ["create_vendor"], "allow_delegation": false},
+    {"id": "approver", "role": "Payment Approver", "owner": "Finance", "tools": ["approve_payment"], "allow_delegation": false}
+  ],
+  "tools": [
+    {"id": "create_vendor", "name": "Create vendor", "description": "Adds a payee to vendor master data."},
+    {"id": "approve_payment", "name": "Approve payment", "description": "Authorizes a disbursement.", "api_key": "sk-live-EXAMPLE-SHOULD-NOT-LEAK"}
+  ]
+}

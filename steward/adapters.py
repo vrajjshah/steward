@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import re
+from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -465,3 +466,262 @@ def import_native_export(
         source_kind="native_export",
         notes=("Imported metadata was redacted before conversion.",),
     )
+
+
+# --- Agent-framework static-export readers (R6) ---------------------------
+#
+# Each reader accepts a JSON file the user exports from their framework and maps
+# it onto the native fleet/tools shape. There are no framework SDK dependencies
+# — these are file readers only. Every reader keeps just agent/tool/delegation
+# metadata: environment values and credential-like strings are redacted, tool
+# objects are narrowed to id/name/description (dropping any env/api_key), and
+# runtime telemetry is marked unavailable because a static export has none.
+
+
+def _string_id_list(value: Any, *, label: str) -> list[str]:
+    """Validate an optional list of non-empty string ids, de-duplicated in order."""
+
+    if value is None:
+        return []
+    if not isinstance(value, list):
+        raise AdapterError(f"{label} must be a list of ids.")
+    result: list[str] = []
+    for item in value:
+        text = str(item).strip()
+        if text and text not in result:
+            result.append(text)
+    return result
+
+
+def _normalize_tool_catalog(value: Any, *, label: str) -> list[dict[str, str]]:
+    """Keep only id/name/description so env/credential fields never survive."""
+
+    if not isinstance(value, list):
+        raise AdapterError(f"{label} must be a 'tools' list.")
+    tools: list[dict[str, str]] = []
+    for entry in value:
+        tool = _as_mapping(entry, label=f"{label} tool")
+        tool_id = str(tool.get("id") or tool.get("name") or "").strip()
+        if not tool_id:
+            raise AdapterError(f"{label}: each tool needs an 'id' or 'name'.")
+        tools.append(
+            {
+                "id": tool_id,
+                "name": str(tool.get("name", tool_id)),
+                "description": str(tool.get("description", "")),
+            }
+        )
+    return tools
+
+
+def _finalize_framework_import(
+    agents: list[dict[str, Any]],
+    tools: list[dict[str, str]],
+    *,
+    source_kind: str,
+    fleet_name: str,
+    notes: tuple[str, ...],
+) -> ImportedGraph:
+    """Redact everything and build a metadata-only ImportedGraph.
+
+    A static export carries no usage telemetry, so every agent is marked
+    ``usage_log_available: False`` — an omitted usage log must not be read as an
+    unused entitlement.
+    """
+
+    safe = _as_mapping(redact_value({"agents": agents, "tools": tools}), label="Framework export")
+    safe_agents: list[Any] = []
+    for agent in safe["agents"]:
+        entry = dict(agent) if isinstance(agent, Mapping) else agent
+        if isinstance(entry, dict):
+            entry.setdefault("usage_log", [])
+            entry["usage_log_available"] = False
+        safe_agents.append(entry)
+    return ImportedGraph(
+        fleet={"schema_version": "0.1", "fleet_name": fleet_name, "agents": safe_agents},
+        tools={"schema_version": "0.1", "tools": safe["tools"]},
+        source_kind=source_kind,
+        notes=notes,
+    )
+
+
+def _framework_notes(framework: str, delegation_source: str) -> tuple[str, ...]:
+    return (
+        f"Imported a static {framework} export: agent identities, declared tool grants, and "
+        "delegation edges only.",
+        "No runtime telemetry is available from a static export, so usage is marked "
+        "unavailable and the over-privilege check will not fire on omitted usage.",
+        f"Delegation edges reflect the {delegation_source} declared in the export, not observed "
+        "runtime behavior.",
+        "Environment values and credential-like strings were redacted; tool entries keep only "
+        "id, name, and description.",
+    )
+
+
+def import_langgraph_export(
+    config: Mapping[str, Any], *, source_name: str = "langgraph.json"
+) -> ImportedGraph:
+    """Map a static LangGraph export (nodes + edges + tools) onto the native graph.
+
+    Contract: ``nodes`` (each ``id``/``name``, optional ``owner``, ``tools``),
+    ``edges`` (``source`` → ``target`` handoffs), and a ``tools`` catalog.
+    """
+
+    root = _as_mapping(config, label="LangGraph export")
+    nodes = root.get("nodes")
+    if not isinstance(nodes, list):
+        raise AdapterError("LangGraph export needs a 'nodes' list.")
+    edges = root.get("edges", [])
+    if not isinstance(edges, list):
+        raise AdapterError("LangGraph export 'edges' must be a list.")
+
+    delegations: dict[str, list[str]] = defaultdict(list)
+    for edge in edges:
+        edge_map = _as_mapping(edge, label="LangGraph edge")
+        source = str(edge_map.get("source", "")).strip()
+        target = str(edge_map.get("target", "")).strip()
+        if source and target and target != source and target not in delegations[source]:
+            delegations[source].append(target)
+
+    agents: list[dict[str, Any]] = []
+    for node in nodes:
+        node_map = _as_mapping(node, label="LangGraph node")
+        node_id = str(node_map.get("id") or node_map.get("name") or "").strip()
+        if not node_id:
+            raise AdapterError("Each LangGraph node needs an 'id' or 'name'.")
+        agents.append(
+            {
+                "id": node_id,
+                "name": str(node_map.get("name", node_id)),
+                "owner": node_map.get("owner"),
+                "granted_tools": _string_id_list(node_map.get("tools"), label="LangGraph node tools"),
+                "can_delegate_to": delegations.get(node_id, []),
+            }
+        )
+    fleet_name = str(root.get("graph_name", f"Imported LangGraph export: {Path(source_name).name}"))
+    return _finalize_framework_import(
+        agents,
+        _normalize_tool_catalog(root.get("tools", []), label="LangGraph export"),
+        source_kind="langgraph",
+        fleet_name=fleet_name,
+        notes=_framework_notes("LangGraph", "graph edges"),
+    )
+
+
+def import_crewai_export(
+    config: Mapping[str, Any], *, source_name: str = "crew.json"
+) -> ImportedGraph:
+    """Map a static CrewAI export (agents + tools) onto the native graph.
+
+    Contract: ``agents`` (each ``id``/``role``/``name``, optional ``owner``,
+    ``tools``, and either ``allow_delegation`` — CrewAI's "may delegate to any
+    coworker" flag — or an explicit ``delegates_to`` list) and a ``tools``
+    catalog. ``allow_delegation: true`` becomes delegation edges to every peer,
+    matching CrewAI's own semantics.
+    """
+
+    root = _as_mapping(config, label="CrewAI export")
+    raw_agents = root.get("agents")
+    if not isinstance(raw_agents, list):
+        raise AdapterError("CrewAI export needs an 'agents' list.")
+
+    parsed: list[tuple[str, Mapping[str, Any]]] = []
+    for entry in raw_agents:
+        agent_map = _as_mapping(entry, label="CrewAI agent")
+        agent_id = str(agent_map.get("id") or agent_map.get("role") or agent_map.get("name") or "").strip()
+        if not agent_id:
+            raise AdapterError("Each CrewAI agent needs an 'id', 'role', or 'name'.")
+        parsed.append((agent_id, agent_map))
+    all_ids = [agent_id for agent_id, _ in parsed]
+
+    agents: list[dict[str, Any]] = []
+    for agent_id, agent_map in parsed:
+        if bool(agent_map.get("allow_delegation", False)):
+            can_delegate = [other for other in all_ids if other != agent_id]
+        else:
+            can_delegate = [
+                target
+                for target in _string_id_list(agent_map.get("delegates_to"), label="CrewAI delegates_to")
+                if target != agent_id
+            ]
+        agents.append(
+            {
+                "id": agent_id,
+                "name": str(agent_map.get("role") or agent_map.get("name") or agent_id),
+                "owner": agent_map.get("owner"),
+                "granted_tools": _string_id_list(agent_map.get("tools"), label="CrewAI agent tools"),
+                "can_delegate_to": can_delegate,
+            }
+        )
+    fleet_name = str(root.get("crew_name", f"Imported CrewAI export: {Path(source_name).name}"))
+    return _finalize_framework_import(
+        agents,
+        _normalize_tool_catalog(root.get("tools", []), label="CrewAI export"),
+        source_kind="crewai",
+        fleet_name=fleet_name,
+        notes=_framework_notes("CrewAI", "agents' allow_delegation / delegates_to"),
+    )
+
+
+def import_openai_agents_export(
+    config: Mapping[str, Any], *, source_name: str = "agents.json"
+) -> ImportedGraph:
+    """Map a static OpenAI Agents SDK export (agents + handoffs + tools) onto the native graph.
+
+    Contract: ``agents`` (each ``id``/``name``, optional ``owner``, ``tools``,
+    and ``handoffs`` — the agents this one may hand off to) and a ``tools``
+    catalog. Handoffs become delegation edges.
+    """
+
+    root = _as_mapping(config, label="OpenAI Agents export")
+    raw_agents = root.get("agents")
+    if not isinstance(raw_agents, list):
+        raise AdapterError("OpenAI Agents export needs an 'agents' list.")
+
+    agents: list[dict[str, Any]] = []
+    for entry in raw_agents:
+        agent_map = _as_mapping(entry, label="OpenAI Agents agent")
+        agent_id = str(agent_map.get("id") or agent_map.get("name") or "").strip()
+        if not agent_id:
+            raise AdapterError("Each OpenAI Agents agent needs an 'id' or 'name'.")
+        agents.append(
+            {
+                "id": agent_id,
+                "name": str(agent_map.get("name", agent_id)),
+                "owner": agent_map.get("owner"),
+                "granted_tools": _string_id_list(agent_map.get("tools"), label="OpenAI Agents tools"),
+                "can_delegate_to": [
+                    target
+                    for target in _string_id_list(agent_map.get("handoffs"), label="OpenAI Agents handoffs")
+                    if target != agent_id
+                ],
+            }
+        )
+    fleet_name = str(root.get("name", f"Imported OpenAI Agents export: {Path(source_name).name}"))
+    return _finalize_framework_import(
+        agents,
+        _normalize_tool_catalog(root.get("tools", []), label="OpenAI Agents export"),
+        source_kind="openai_agents",
+        fleet_name=fleet_name,
+        notes=_framework_notes("OpenAI Agents SDK", "agents' declared handoffs"),
+    )
+
+
+# Every non-MCP import format, keyed by the name the CLI accepts.
+FRAMEWORK_IMPORTERS = {
+    "langgraph": import_langgraph_export,
+    "crewai": import_crewai_export,
+    "openai-agents": import_openai_agents_export,
+    "native": import_native_export,
+}
+
+
+def load_framework_export(path: str | Path, framework: str) -> ImportedGraph:
+    """Read and safely import a framework's static export from disk."""
+
+    reader = FRAMEWORK_IMPORTERS.get(framework)
+    if reader is None:
+        raise AdapterError(
+            f"Unknown framework {framework!r}; choose one of {sorted(FRAMEWORK_IMPORTERS)}."
+        )
+    return reader(load_json(path), source_name=str(path))

@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Agent-framework export readers (`steward import`)**: three file readers —
+  LangGraph, CrewAI, and the OpenAI Agents SDK — that map a framework's static
+  JSON export onto Steward's native fleet/tool graph, with no framework SDK
+  dependency. Each framework's delegation notion becomes the same graph edge
+  (LangGraph edges, CrewAI `allow_delegation`/`delegates_to`, OpenAI Agents
+  `handoffs`), so a delegated toxic combination surfaces on the delegating
+  agent. Safe by construction: tool objects are narrowed to id/name/description
+  (dropping env/credential fields), everything passes the redaction boundary,
+  and usage is marked unavailable (a static export has no telemetry, so the
+  over-privilege check won't fire on omitted usage). `steward import --format
+  langgraph|crewai|openai-agents|native|mcp` writes native files the other
+  commands consume; credential-free examples ship under `examples/frameworks/`.
 - **Peer-group outlier analytics**: a deterministic heuristic that flags agents
   whose *effective* access is unlike any peer's (pairwise Jaccard similarity;
   an agent isolated from every peer while holding enough access is flagged),

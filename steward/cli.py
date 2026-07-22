@@ -8,7 +8,7 @@ from typing import Annotated
 
 import typer
 
-from steward.adapters import AdapterError, load_mcp_config
+from steward.adapters import AdapterError, load_framework_export, load_mcp_config
 from steward.campaigns import (
     CampaignError,
     CampaignScope,
@@ -483,6 +483,50 @@ def diff(
                 err=True,
             )
             raise typer.Exit(code=1)
+
+
+@app.command("import")
+def import_export(
+    input_path: Annotated[
+        Path, typer.Option("--input", help="Path to the framework export JSON.")
+    ],
+    import_format: Annotated[
+        str,
+        typer.Option(
+            "--format",
+            help="Export format: langgraph | crewai | openai-agents | native | mcp.",
+        ),
+    ],
+    fleet_out: Annotated[
+        Path, typer.Option("--fleet-out", help="Destination for the native fleet JSON.")
+    ] = Path("fleet.json"),
+    tools_out: Annotated[
+        Path, typer.Option("--tools-out", help="Destination for the native tool catalog JSON.")
+    ] = Path("tools.json"),
+) -> None:
+    """Convert a framework export (LangGraph/CrewAI/OpenAI Agents/MCP) to native files."""
+
+    try:
+        graph = (
+            load_mcp_config(input_path)
+            if import_format == "mcp"
+            else load_framework_export(input_path, import_format)
+        )
+    except (AdapterError, FileNotFoundError) as exc:
+        raise typer.BadParameter(str(exc), param_hint="--input") from exc
+
+    fleet_out.parent.mkdir(parents=True, exist_ok=True)
+    tools_out.parent.mkdir(parents=True, exist_ok=True)
+    fleet_out.write_text(json.dumps(graph.fleet, indent=2) + "\n", encoding="utf-8")
+    tools_out.write_text(json.dumps(graph.tools, indent=2) + "\n", encoding="utf-8")
+    typer.echo(
+        f"Imported {graph.source_kind} export "
+        f"({len(graph.fleet.get('agents', []))} agents, {len(graph.tools.get('tools', []))} tools) "
+        f"-> {fleet_out}, {tools_out}."
+    )
+    for note in graph.notes:
+        typer.echo(f"- {note}")
+    typer.echo(f"Next: steward analyze --fleet {fleet_out} --tools {tools_out}")
 
 
 @app.command()

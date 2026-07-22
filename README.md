@@ -309,6 +309,19 @@ Because an MCP config has no invocation telemetry, Steward marks usage as unavai
 
 An OpenAI Agents SDK project can use that same native export shape: agents, their declared purpose, callable tool metadata, direct grants, and handoff/delegation edges. Runtime data and secrets should not be exported.
 
+### Import from your agent framework (LangGraph / CrewAI / OpenAI Agents SDK)
+
+If your fleet is built on a framework, export its static topology to JSON and let Steward convert it — no framework SDK is installed, these are file readers only:
+
+```bash
+steward import --format langgraph     --input graph.json --fleet-out fleet.json --tools-out tools.json
+steward import --format crewai        --input crew.json  --fleet-out fleet.json --tools-out tools.json
+steward import --format openai-agents --input agents.json --fleet-out fleet.json --tools-out tools.json
+steward analyze --fleet fleet.json --tools tools.json
+```
+
+Each reader maps the framework's declared delegation onto Steward's graph: LangGraph **edges**, CrewAI **`allow_delegation`** (delegate to any coworker) or an explicit `delegates_to`, and OpenAI Agents **`handoffs`** all become delegation edges, so a delegated toxic combination surfaces on the delegating agent. Credential-free examples ship under [`examples/frameworks/`](examples/frameworks/). Honest limits: a static export is metadata only — environment values and credential-like fields are redacted (tool entries keep only id/name/description), usage is marked unavailable so the over-privilege check won't fire on omitted telemetry, and the delegation edges are the framework's *declared* handoffs, not observed runtime behavior.
+
 ### Runtime traces — the "Used" pillar
 
 Grants say what an agent *may* do; traces say what it *did*. Point `--traces` at a JSONL execution log — one event per line with `timestamp`, `agent_id`, `tool_id`, and optional `status`, a shape that maps directly from OpenTelemetry GenAI spans or any agent framework's invocation log:

@@ -191,6 +191,24 @@ no extra wiring. Every threshold lives in one place and is echoed into the
 output; the honest caveat — small-fleet peer comparison is indicative, not
 statistical — travels with the section.
 
+### Agent-framework export readers
+
+`steward/adapters.py` gains three readers — LangGraph, CrewAI, and the OpenAI
+Agents SDK — that map each framework's *static export* onto the existing native
+import path. They are file readers with **no framework SDK dependency**: each
+defines a minimal documented JSON contract (agents/nodes, a tool catalog, and
+declared handoffs/edges) and normalizes it to Steward's `{agents, tools}` shape.
+Every framework's delegation notion becomes the same graph edge — LangGraph
+edges, CrewAI's `allow_delegation` (expanded to every coworker) or explicit
+`delegates_to`, and OpenAI Agents `handoffs` — so a delegated toxic combination
+surfaces on the delegating agent regardless of source. Three safety rules hold
+across all readers: tool objects are narrowed to id/name/description (dropping
+`env`/`api_key`/config fields), the whole structure is passed through the same
+redaction boundary as every other import, and usage is marked unavailable —
+a static export has no telemetry, so an omitted usage log must never read as an
+unused entitlement. `steward import` converts an export to native files that
+every other command then consumes.
+
 ## 3. System architecture
 
 ```mermaid
