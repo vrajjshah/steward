@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import re
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
@@ -28,23 +27,6 @@ from steward.models import Fleet, ToolCatalog
 from steward.reporting import build_fleet_audit_report, render_markdown_report
 
 runner = CliRunner()
-
-_ANSI = re.compile(r"\x1b\[[0-9;]*m")
-
-
-def _normalize(result) -> str:
-    """CLI output with ANSI styling and Rich panel borders removed.
-
-    Under GITHUB_ACTIONS, Rich renders BadParameter errors in a colored,
-    box-drawn panel and word-wraps long messages (including tmp paths) to the
-    terminal width, which can split a phrase across the box border. Stripping
-    the box characters and collapsing whitespace makes a wrapped message read
-    as one line so substring assertions hold in CI and locally alike.
-    """
-
-    text = _ANSI.sub("", result.output)
-    text = re.sub(r"[│╭╮╰╯─┃┏┓┗┛━┌┐└┘|]", " ", text)
-    return re.sub(r"\s+", " ", text)
 
 
 def _tools() -> ToolCatalog:
@@ -246,17 +228,17 @@ def test_report_without_campaigns_is_unchanged() -> None:
     assert "certification_campaigns" not in report["executive_summary"]
 
 
-def test_cli_campaign_status_empty(tmp_path) -> None:
+def test_cli_campaign_status_empty(tmp_path, cli_text) -> None:
     result = runner.invoke(app, ["campaign", "status", "--state-dir", str(tmp_path)])
     assert result.exit_code == 0, result.output
-    assert "No certification campaigns" in _normalize(result)
+    assert "No certification campaigns" in cli_text(result)
 
 
-def test_cli_campaign_start_requires_initialized_ledger(tmp_path) -> None:
+def test_cli_campaign_start_requires_initialized_ledger(tmp_path, cli_text) -> None:
     result = runner.invoke(
         app,
         ["campaign", "start", "--name", "X", "--scope-all", "--state-dir", str(tmp_path)],
     )
     assert result.exit_code != 0
-    # Normalize because CI wraps this long message (with tmp paths) in a panel.
-    assert "steward init" in _normalize(result)
+    # cli_text normalizes the panel that CI wraps this long (tmp-path) message into.
+    assert "steward init" in cli_text(result)

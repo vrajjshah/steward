@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import re
-
 import pytest
 from typer.testing import CliRunner
 
@@ -20,11 +18,6 @@ from steward.remediation import (
 )
 
 runner = CliRunner()
-_ANSI_ESCAPES = re.compile(r"\x1b\[[0-9;]*m")
-
-
-def _plain(result) -> str:
-    return _ANSI_ESCAPES.sub("", result.output)
 
 
 def _tools() -> ToolCatalog:
@@ -219,14 +212,14 @@ def test_revocation_spec_parsing() -> None:
         Revocation.parse_edge("no-arrow")
 
 
-def test_cli_simulate_requires_a_target() -> None:
+def test_cli_simulate_requires_a_target(cli_text) -> None:
     result = runner.invoke(app, ["simulate"])
     assert result.exit_code != 0
-    assert "at least one --revoke" in _plain(result)
+    assert "at least one --revoke" in cli_text(result)
 
 
-def test_cli_remediate_runs_on_shipped_fleet() -> None:
+def test_cli_remediate_runs_on_shipped_fleet(cli_text) -> None:
     result = runner.invoke(app, ["remediate"])
     assert result.exit_code == 0, result.output
-    assert "Remediation proposal" in _plain(result)
-    assert "PROPOSAL for human review" in _plain(result)
+    assert "Remediation proposal" in cli_text(result)
+    assert "PROPOSAL for human review" in cli_text(result)

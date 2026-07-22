@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 import threading
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from types import SimpleNamespace
@@ -19,13 +18,6 @@ from steward.notify import (
 )
 
 runner = CliRunner()
-_ANSI = re.compile(r"\x1b\[[0-9;]*m")
-
-
-def _normalize(result) -> str:
-    text = _ANSI.sub("", result.output)
-    text = re.sub(r"[│╭╮╰╯─|]", " ", text)
-    return re.sub(r"\s+", " ", text)
 
 
 def _reconciliation() -> SimpleNamespace:
@@ -98,7 +90,7 @@ def test_post_drift_notification_raises_on_unreachable() -> None:
         post_drift_notification("http://127.0.0.1:1", {"event": "x"}, timeout=2.0)
 
 
-def test_cli_notify_url_requires_traces(tmp_path) -> None:
+def test_cli_notify_url_requires_traces(tmp_path, cli_text) -> None:
     result = runner.invoke(
         app,
         [
@@ -111,4 +103,4 @@ def test_cli_notify_url_requires_traces(tmp_path) -> None:
         ],
     )
     assert result.exit_code != 0
-    assert "requires --traces" in _normalize(result)
+    assert "requires --traces" in cli_text(result)

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import re
 
 from typer.testing import CliRunner
 
@@ -12,12 +11,6 @@ from steward.diffing import diff_fleets, introduced_findings_at_or_above
 from steward.models import Fleet, ToolCatalog
 
 runner = CliRunner()
-
-_ANSI_ESCAPES = re.compile(r"\x1b\[[0-9;]*m")
-
-
-def _plain(result) -> str:
-    return _ANSI_ESCAPES.sub("", result.output)
 
 
 def _tools() -> ToolCatalog:
@@ -238,7 +231,7 @@ def _write_tools(tmp_path) -> str:
     return str(path)
 
 
-def test_cli_fail_on_new_fires_on_introduced_critical(tmp_path) -> None:
+def test_cli_fail_on_new_fires_on_introduced_critical(tmp_path, cli_text) -> None:
     tools = _write_tools(tmp_path)
     before = _write_inventory(tmp_path, "before", [_sod_agent("a", ["create_vendor"])])
     after = _write_inventory(
@@ -261,10 +254,10 @@ def test_cli_fail_on_new_fires_on_introduced_critical(tmp_path) -> None:
         ],
     )
     assert result.exit_code == 1
-    assert "GATE FAILED" in _plain(result)
+    assert "GATE FAILED" in cli_text(result)
 
 
-def test_cli_fail_on_new_ignores_persisting_critical(tmp_path) -> None:
+def test_cli_fail_on_new_ignores_persisting_critical(tmp_path, cli_text) -> None:
     tools = _write_tools(tmp_path)
     # The critical SoD already exists in the before snapshot, so it is NOT new.
     both = [_sod_agent("a", ["create_vendor", "approve_payment"])]
@@ -287,10 +280,10 @@ def test_cli_fail_on_new_ignores_persisting_critical(tmp_path) -> None:
         ],
     )
     assert result.exit_code == 0, result.output
-    assert "GATE FAILED" not in _plain(result)
+    assert "GATE FAILED" not in cli_text(result)
 
 
-def test_cli_rejects_bad_severity(tmp_path) -> None:
+def test_cli_rejects_bad_severity(tmp_path, cli_text) -> None:
     tools = _write_tools(tmp_path)
     fleet = _write_inventory(tmp_path, "f", [_clean_agent("a")])
     result = runner.invoke(
@@ -310,7 +303,7 @@ def test_cli_rejects_bad_severity(tmp_path) -> None:
         ],
     )
     assert result.exit_code != 0
-    assert "critical, high, medium, low" in _plain(result)
+    assert "critical, high, medium, low" in cli_text(result)
 
 
 def test_cli_writes_json_and_markdown(tmp_path) -> None:
