@@ -9,7 +9,34 @@ description = "Citation-verified effective-access analysis for AI agent fleets."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
-authors = [{ name = "Steward contributors" }]
+authors = [{ name = "Vraj Shah" }]
+keywords = [
+  "iam",
+  "identity-governance",
+  "iga",
+  "ai-agents",
+  "agent-security",
+  "non-human-identity",
+  "segregation-of-duties",
+  "least-privilege",
+  "access-review",
+  "mcp",
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+  "Intended Audience :: System Administrators",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: System :: Systems Administration :: Authentication/Directory",
+  "Typing :: Typed",
+]
 dependencies = [
   "boto3>=1.35",
   "cryptography>=43.0",
@@ -31,11 +58,24 @@ dev = [
   "ruff>=0.8",
 ]
 
+[project.urls]
+Homepage = "https://github.com/vrajjshah/steward"
+Repository = "https://github.com/vrajjshah/steward"
+Documentation = "https://github.com/vrajjshah/steward/blob/main/docs/ARCHITECTURE.md"
+Changelog = "https://github.com/vrajjshah/steward/blob/main/CHANGELOG.md"
+Issues = "https://github.com/vrajjshah/steward/issues"
+"Live demo" = "https://steward-production-19c1.up.railway.app/"
+
 [project.scripts]
 steward = "steward.cli:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["steward"]
+
+[tool.hatch.build.targets.sdist]
+# Ship the data the CLI and zero-key demo actually read, plus the labeled
+# fixtures that let a user re-run the trust gate from an sdist.
+include = ["steward", "data", "evals", "examples", "tests", "docs", "README.md", "CHANGELOG.md", "LICENSE", "Makefile"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "evals"]

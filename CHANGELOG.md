@@ -6,6 +6,23 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+- **Distribution-ready packaging**: PyPI metadata (trove classifiers, keywords,
+  project URLs including the live demo), a PEP 561 `py.typed` marker so
+  downstream users get Steward's type hints, and an sdist that ships the data,
+  fixtures, and tests needed to re-run the trust gate from the archive. The
+  wheel was verified by installing it into a clean virtualenv and analyzing a
+  real MCP config from outside the repository.
+- **Release publishing workflow** (`.github/workflows/publish.yml`): builds and
+  publishes to PyPI via **Trusted Publishing (OIDC)** — no API token is stored
+  in the repository. It re-runs lint, tests, and the citation/quality gate on
+  the exact commit being published, validates distribution metadata with
+  `twine check`, and refuses to publish if the package version disagrees with
+  the release tag.
+- **Packaging check in CI**: every push now builds the sdist and wheel and runs
+  `twine check`, so packaging breakage surfaces immediately instead of at
+  release time.
+
 ### Changed
 - The cached benchmark result now records its run count in provenance (a `runs`
   field, printed alongside the mode), so a reader never mistakes the committed

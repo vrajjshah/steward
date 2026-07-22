@@ -1,0 +1,76 @@
+name: Publish to PyPI
+
+# Publishing never happens on a push. It runs when a GitHub Release is
+# published from a tag, or when a maintainer triggers it by hand (used to
+# publish a version whose release already exists). Authentication uses PyPI
+# Trusted Publishing (OIDC) — no API token is stored in this repository.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build distributions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade build twine
+
+      # The trust gate must pass on the exact commit being published; a
+      # release is not a reason to skip it.
+      - name: Install Steward
+        run: pip install -e ".[dev]"
+      - name: Lint
+        run: ruff check .
+      - name: Test
+        run: make test
+      - name: Citation and quality gate
+        run: make eval
+
+      - name: Build sdist and wheel
+        run: python -m build
+
+      - name: Validate distribution metadata
+        run: python -m twine check dist/*
+
+      # Guard against tagging one version and shipping another. Only meaningful
+      # for a release run, where the ref is the tag.
+      - name: Verify version matches the release tag
+        if: github.event_name == 'release'
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(python -c 'import tomllib,pathlib; print(tomllib.loads(pathlib.Path("pyproject.toml").read_text())["project"]["version"])')"
+          echo "tag=$TAG package=$PKG"
+          test "$TAG" = "$PKG"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # Required for OIDC trusted publishing; no secrets are referenced.
+    permissions:
+      id-token: write
+    environment:
+      name: pypi
+      url: https://pypi.org/p/steward-agent-governance
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - name: Publish
+        uses: pypa/gh-action-pypi-publish@release/v1
