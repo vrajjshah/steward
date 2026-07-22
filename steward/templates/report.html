@@ -155,6 +155,29 @@
 </section>
 {% endif %}
 
+{% if report.peer_analytics and report.peer_analytics.applicable and report.peer_analytics.outliers %}
+<section class="report-section" aria-labelledby="peer-analytics-title">
+  <div class="section-heading compact-heading"><div><div class="eyebrow">Peer analytics</div><h2 id="peer-analytics-title">Peer-group outliers</h2></div></div>
+  <p class="report-prose">{{ report.peer_analytics.note }} Heuristic, not a finding — Jaccard similarity of effective access sets, threshold {{ report.peer_analytics.similarity_threshold }}, {{ report.peer_analytics.agents_considered }} agents considered.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Agent</th><th>Effective tools</th><th>High-impact</th><th>Max peer similarity</th><th>Why flagged</th></tr></thead>
+      <tbody>
+      {% for outlier in report.peer_analytics.outliers %}
+        <tr>
+          <td><a class="agent-link" href="/risk-cards/{{ outlier.agent_id }}">{{ outlier.agent_id }}</a></td>
+          <td>{{ outlier.effective_tool_count }}</td>
+          <td>{{ outlier.high_impact_count }}</td>
+          <td>{{ "%.2f" | format(outlier.max_similarity) }}{% if outlier.nearest_peer %} ({{ outlier.nearest_peer }}){% endif %}</td>
+          <td>{{ outlier.reason }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endif %}
+
 <section class="report-section" aria-labelledby="audit-findings-title">
   <div class="section-heading compact-heading"><div><div class="eyebrow">Verified findings</div><h2 id="audit-findings-title">Evidence trail and remediation</h2></div></div>
   <div class="report-findings">

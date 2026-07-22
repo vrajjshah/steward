@@ -86,6 +86,10 @@ see the honest comparison in the [README](../README.md#how-steward-compares).
 |---|---|
 | Evaluating quickly | `STEWARD_DEMO=1 make demo` → dashboard on `:8000`, no keys |
 | Reviewing your own MCP setup | `steward analyze --mcp path/to/claude_desktop_config.json --no-llm` |
-| Wiring a CI gate | `make eval` (deterministic gate) on your fleet export |
-| Bringing runtime data | `steward analyze --traces your-traces.jsonl --no-llm` |
+| Wiring a CI gate | `steward analyze --no-llm --fail-on high`, or `steward diff --fail-on-new high` to block only newly introduced findings |
+| Reviewing what a change did | `steward diff` between two fleet snapshots |
+| Deciding what to revoke | `steward remediate` (ranked minimal revocation plan), then `steward simulate` to verify |
+| Encoding your own SoD matrix | `steward analyze --rules your-pack.yaml` (see the README rule-pack section) |
+| Running an access review | `steward campaign start` → decisions → ledger-signed completion |
+| Bringing runtime data | `steward analyze --traces your-traces.jsonl --no-llm` (add `--notify-url` for drift alerts) |
 | Reading the design | [`docs/ARCHITECTURE.md`](ARCHITECTURE.md), then [`docs/COST.md`](COST.md) |

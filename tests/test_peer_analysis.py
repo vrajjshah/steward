@@ -100,6 +100,26 @@ def test_report_includes_peer_analytics() -> None:
     assert "report_bot" in rendered
 
 
+def test_html_report_renders_the_peer_outlier_section() -> None:
+    """The outlier must be visible on every report surface, not only Markdown.
+
+    Regression guard: the section originally rendered in JSON and Markdown but
+    no HTML template showed it, so a flagged outlier was invisible in the
+    report a reviewer actually opens.
+    """
+
+    from fastapi.testclient import TestClient
+
+    from steward.app import create_app
+    from steward.web_service import StewardService
+
+    client = TestClient(create_app(StewardService(demo_mode=True)))
+    html = client.get("/api/report.html").text
+    assert "Peer-group outliers" in html
+    assert "/risk-cards/report_bot" in html
+    assert "Heuristic, not a finding" in html
+
+
 def test_report_without_effective_access_has_no_peer_section() -> None:
     fleet, tools = load_inventory(
         PROJECT_ROOT / "data" / "fleet.json", PROJECT_ROOT / "data" / "tools.json"

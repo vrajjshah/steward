@@ -525,7 +525,7 @@ Steward is a security tool, so it holds itself to the standard it audits.
 
 ## 12. Boundaries & roadmap
 
-**What v0.1 is not.** Configuration-time analysis, not an authentication system
+**What Steward is not.** Configuration-time analysis, not an authentication system
 or a compliance certification. The enforcement demo is a deliberately narrow
 policy-evaluating pass-through — no OAuth/OIDC, no multi-upstream federation, no
 runtime payload inspection. An MCP config declares *servers*, not their

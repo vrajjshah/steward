@@ -380,6 +380,10 @@ make eval
 
 GitHub Actions runs lint plus `make eval` on every push and pull request. The deterministic synthetic thresholds are deliberately `1.0`: a regression, invalid citation, or a false positive on a clean control fails CI. LLM-generalized proposals are graph-citation verified at runtime, but they are outside this v0.1 golden-set precision gate.
 
+## Governance workflows
+
+Detection is the start; these are the workflows a governance program actually runs day to day.
+
 ### Gate your own CI on Steward
 
 `steward analyze` exits non-zero when you tell it what should fail a build, so a pull request that grants an agent a toxic pair — or a trace window showing access used outside the inventory — stops before merge:
@@ -508,7 +512,7 @@ Honest positioning — what Steward is next to the things it will be compared wi
 
 **Versus asking a model directly:** a chat answer about your config is advice with no floor under it. Steward's deterministic tier does not vary run to run, its model tier cannot surface a finding whose evidence fails graph verification, its accuracy is measured in public on labeled fixtures, and its reviews leave a signed, tamper-evident record. *A prompt is advice; Steward is evidence.*
 
-## v0.1 boundaries
+## Boundaries
 
 The analyzer is configuration-time analysis, not an authentication system or
 compliance certification. The optional, deliberately narrow enforcement demo
