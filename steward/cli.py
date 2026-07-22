@@ -9,6 +9,18 @@ from typing import Annotated
 import typer
 
 from steward.adapters import AdapterError, load_mcp_config
+from steward.campaigns import (
+    CampaignError,
+    CampaignScope,
+    campaign_report_summary,
+    close_campaign,
+    load_store,
+    record_decision,
+    render_campaign_detail,
+    render_campaign_status,
+    save_store,
+    start_campaign,
+)
 from steward.diffing import (
     diff_fleets,
     introduced_findings_at_or_above,
@@ -56,10 +68,15 @@ redteam_app = typer.Typer(
     add_completion=False,
     help="Run harmless, bundled red-team scenarios against a generated policy.",
 )
+campaign_app = typer.Typer(
+    add_completion=False,
+    help="Run recurring access-certification campaigns with signed decisions.",
+)
 app.add_typer(audit_app, name="audit")
 app.add_typer(policy_app, name="policy")
 app.add_typer(enforce_app, name="enforce")
 app.add_typer(redteam_app, name="redteam")
+app.add_typer(campaign_app, name="campaign")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_FLEET = PROJECT_ROOT / "data" / "fleet.json"
@@ -351,6 +368,10 @@ def analyze(
     if appended:
         typer.echo(f"Signed {appended} finding event{'s' if appended != 1 else ''} to {state_dir}.")
 
+    campaign_store = load_store(state_dir)
+    campaign_summary = (
+        campaign_report_summary(campaign_store) if campaign_store.campaigns else None
+    )
     report_payload = build_fleet_audit_report(
         result.fleet,
         result.findings,
@@ -359,6 +380,7 @@ def analyze(
         needed_capabilities=result.needed_capabilities,
         granted_vs_needed_gaps=result.granted_vs_needed_gaps,
         metadata=result.metadata,
+        campaigns=campaign_summary,
     )
     if output:
         output.parent.mkdir(parents=True, exist_ok=True)
@@ -744,6 +766,175 @@ def run_redteam_exfiltration(
     typer.echo(
         f"Ledger proof: chain valid, {verified.entry_count} entries, "
         f"head hash {verified.head_hash or '(empty ledger)'}"
+    )
+
+
+def _campaign_scope(
+    scope_agents: str | None,
+    scope_min_severity: str | None,
+    scope_min_risk_score: int | None,
+    scope_all: bool,
+) -> CampaignScope:
+    chosen = [
+        bool(scope_agents),
+        bool(scope_min_severity),
+        scope_min_risk_score is not None,
+        scope_all,
+    ]
+    if sum(chosen) != 1:
+        raise typer.BadParameter(
+            "Choose exactly one scope: --scope-agents, --scope-min-severity, "
+            "--scope-min-risk-score, or --scope-all."
+        )
+    if scope_all:
+        return CampaignScope(kind="all")
+    if scope_agents:
+        ids = [item.strip() for item in scope_agents.split(",") if item.strip()]
+        return CampaignScope(kind="agents", agent_ids=ids)
+    if scope_min_severity:
+        return CampaignScope(kind="min_severity", min_severity=scope_min_severity)
+    return CampaignScope(kind="min_risk_score", min_risk_score=scope_min_risk_score)
+
+
+@campaign_app.command("start")
+def campaign_start(
+    name: Annotated[str, typer.Option("--name", help="Human-readable campaign name.")],
+    scope_agents: Annotated[
+        str | None, typer.Option("--scope-agents", help="Comma-separated explicit agent ids.")
+    ] = None,
+    scope_min_severity: Annotated[
+        str | None,
+        typer.Option("--scope-min-severity", help="Include agents with a finding >= this severity."),
+    ] = None,
+    scope_min_risk_score: Annotated[
+        int | None,
+        typer.Option("--scope-min-risk-score", help="Include agents with a finding score >= this."),
+    ] = None,
+    scope_all: Annotated[
+        bool, typer.Option("--scope-all", help="Include every agent in the fleet.")
+    ] = False,
+    due: Annotated[
+        str | None, typer.Option("--due", help="Optional due date, YYYY-MM-DD.")
+    ] = None,
+    fleet: Annotated[Path | None, typer.Option(help="Path to Steward fleet JSON.")] = None,
+    tools: Annotated[Path | None, typer.Option(help="Path to tool catalog JSON.")] = None,
+    mcp: Annotated[Path | None, typer.Option(help="Claude Desktop / Cursor mcp.json path.")] = None,
+    state_dir: Annotated[
+        Path, typer.Option(help="Initialized audit-ledger directory.")
+    ] = DEFAULT_LEDGER_STATE,
+) -> None:
+    """Open a scoped certification campaign and sign the start event."""
+
+    from datetime import date
+
+    scope = _campaign_scope(scope_agents, scope_min_severity, scope_min_risk_score, scope_all)
+    due_at = None
+    if due:
+        try:
+            due_at = date.fromisoformat(due.strip())
+        except ValueError as exc:
+            raise typer.BadParameter("Use YYYY-MM-DD.", param_hint="--due") from exc
+
+    ledger = _initialized_ledger(state_dir, required=True)
+    assert ledger is not None
+    loaded_fleet, loaded_tools, _ = _load_input(fleet, tools, mcp)
+    result = analyze_fleet(loaded_fleet, loaded_tools, enable_llm=False)
+    store = load_store(state_dir)
+    try:
+        campaign = start_campaign(
+            store, ledger, name=name, scope=scope, result=result, due_at=due_at
+        )
+    except CampaignError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    save_store(state_dir, store)
+    typer.echo(
+        f"Started campaign {campaign.id}: {campaign.name} "
+        f"({len(campaign.agent_ids)} agents in scope). Decision events are signed to {state_dir}."
+    )
+
+
+@campaign_app.command("status")
+def campaign_status(
+    campaign_id: Annotated[
+        str | None, typer.Argument(help="Optional campaign id for full detail.")
+    ] = None,
+    state_dir: Annotated[
+        Path, typer.Option(help="Initialized audit-ledger directory.")
+    ] = DEFAULT_LEDGER_STATE,
+) -> None:
+    """Show all campaigns, or one campaign's per-agent decisions."""
+
+    store = load_store(state_dir)
+    if campaign_id is None:
+        typer.echo(render_campaign_status(store))
+        return
+    campaign = store.campaigns.get(campaign_id)
+    if campaign is None:
+        raise typer.BadParameter(f"no campaign with id {campaign_id!r}", param_hint="campaign_id")
+    typer.echo(render_campaign_detail(campaign))
+
+
+@campaign_app.command("decide")
+def campaign_decide(
+    campaign_id: Annotated[str, typer.Argument(help="Campaign id.")],
+    agent_id: Annotated[str, typer.Argument(help="Agent id to decide on.")],
+    decision: Annotated[str, typer.Argument(help="approve | revoke | flag.")],
+    note: Annotated[str, typer.Option("--note", help="Reviewer note (recorded and signed).")] = "",
+    state_dir: Annotated[
+        Path, typer.Option(help="Initialized audit-ledger directory.")
+    ] = DEFAULT_LEDGER_STATE,
+) -> None:
+    """Record a signed approve/revoke/flag decision for one agent."""
+
+    ledger = _initialized_ledger(state_dir, required=True)
+    assert ledger is not None
+    store = load_store(state_dir)
+    try:
+        campaign = record_decision(
+            store,
+            ledger,
+            campaign_id=campaign_id,
+            agent_id=agent_id,
+            decision=decision,
+            note=note,
+        )
+    except CampaignError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    save_store(state_dir, store)
+    typer.echo(
+        f"Recorded {decision.upper()} for {agent_id} in {campaign_id} "
+        f"({campaign.completion_pct()}% complete)."
+    )
+
+
+@campaign_app.command("close")
+def campaign_close(
+    campaign_id: Annotated[str, typer.Argument(help="Campaign id.")],
+    force: Annotated[
+        bool, typer.Option("--force", help="Close even if some agents are undecided.")
+    ] = False,
+    reason: Annotated[
+        str | None, typer.Option("--reason", help="Required when forcing an incomplete close.")
+    ] = None,
+    state_dir: Annotated[
+        Path, typer.Option(help="Initialized audit-ledger directory.")
+    ] = DEFAULT_LEDGER_STATE,
+) -> None:
+    """Close a campaign; an incomplete close needs --force and --reason."""
+
+    ledger = _initialized_ledger(state_dir, required=True)
+    assert ledger is not None
+    store = load_store(state_dir)
+    try:
+        campaign = close_campaign(
+            store, ledger, campaign_id=campaign_id, force=force, reason=reason
+        )
+    except CampaignError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+    save_store(state_dir, store)
+    typer.echo(
+        f"Closed campaign {campaign.id} at {campaign.completion_pct()}% "
+        f"({len(campaign.decisions)}/{len(campaign.agent_ids)} decided)."
     )
 
 

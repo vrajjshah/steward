@@ -159,6 +159,22 @@ a parameter, defaulting to the built-in classes, so a pack's high-impact /
 sensitive-read / untrusted-content / exfiltration ids influence the risk score
 and complete a trifecta on the client's own tool names.
 
+### Recurring certification campaigns
+
+`steward/campaigns.py` adds a recertification loop on top of the audit ledger. A
+campaign selects agents (explicit ids, a severity / risk-score filter, or all),
+records an approve / revoke / flag decision per agent, and is closed once every
+agent is decided (or forced closed with a recorded reason). The design reuses
+existing primitives rather than adding infrastructure: **every** start,
+decision, and close **appends a signed `certification` event to the Ed25519
+ledger** through the same redacted commitment path as findings, so the who/what/
+when record is tamper-evident and independently verifiable, while the mutable
+campaign state persists as plain `campaigns.json` beside the ledger and survives
+restarts. The audit report gains a certification-campaigns rollup (open /
+complete / overdue counts and per-campaign progress) in its executive summary.
+Honest scope: a single-reviewer local workflow with a tamper-evident evidence
+trail — not multi-approver routing or SoD on the reviewers themselves.
+
 ## 3. System architecture
 
 ```mermaid

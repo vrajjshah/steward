@@ -454,6 +454,20 @@ steward analyze --rules examples/rules/finance_sod_pack.yaml     # repeatable
 
 `--rules` works on `analyze`, `diff`, `simulate`, `remediate`, and `policy generate`. Pack rules are **additive**: the built-in floor is unchanged, pack findings are ordinary deterministic findings that carry your `rule_id` and get control-framework annotation for free, and the capability-class extensions feed the risk score and the lethal-trifecta check so both speak your tool vocabulary. Packs are portable — a rule naming a tool absent from the loaded catalog simply never fires (reported as an inert-rule note). Matching is by tool id, the same honest limitation as the built-in rules. A ready-to-adapt example ships at [`examples/rules/finance_sod_pack.yaml`](examples/rules/finance_sod_pack.yaml).
 
+### Recurring certification campaigns
+
+Governance isn't a one-time scan — access has to be *recertified* on a cadence. A campaign is a scoped review session: pick a set of agents, record an approve / revoke / flag decision with a note for each, and close it. Every lifecycle event is a **signed, tamper-evident entry in the audit ledger**, so the record of who certified what, when, holds up to an auditor:
+
+```bash
+steward init                                             # one-time: create the signing keypair
+steward campaign start --name "Q3 recert" --scope-min-severity high --due 2026-09-30
+steward campaign status                                  # progress across all campaigns
+steward campaign decide q3-recert support_bot approve --note "PII egress accepted, DLP in place"
+steward campaign close q3-recert                         # requires all decisions, or --force --reason
+```
+
+Scope by explicit agent ids (`--scope-agents a,b`), a severity floor (`--scope-min-severity`), a risk-score floor (`--scope-min-risk-score`), or the whole fleet (`--scope-all`). State lives in `.steward/campaigns.json` beside the ledger and survives restarts; the audit report grows a **certification-campaigns** section (open / complete / overdue counts and per-campaign progress). Honest scope: this is a single-reviewer local workflow with a tamper-evident evidence trail — not multi-approver enterprise routing or SoD on the reviewers themselves.
+
 ## How Steward compares
 
 Honest positioning — what Steward is next to the things it will be compared with:

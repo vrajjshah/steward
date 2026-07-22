@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Recurring certification campaigns (`steward campaign`)**: a scoped
+  recertification workflow — `start` (scope by explicit agents, a severity or
+  risk-score floor, or all, with an optional due date), `status`, `decide`
+  (approve/revoke/flag with a note), and `close` (requires all decisions, or
+  `--force --reason`). Every lifecycle event appends a signed `certification`
+  entry to the Ed25519 audit ledger through the existing redacted commitment
+  path, so the who/what/when record is tamper-evident and offline-verifiable;
+  mutable state persists in `.steward/campaigns.json` and survives restarts. The
+  audit report gains a certification-campaigns rollup (open/complete/overdue
+  counts and per-campaign progress) in its executive summary. Honest scope: a
+  single-reviewer local workflow with a tamper-evident trail, not multi-approver
+  enterprise routing.
 - **SoD policy-as-code — custom rule packs (`--rules`)**: a YAML pack extends
   the built-in deterministic floor with an organization's own toxic
   combinations, delegated-high-risk capabilities, and capability-class

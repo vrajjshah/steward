@@ -711,6 +711,7 @@ def build_fleet_audit_report(
     granted_vs_needed_gaps: Any | None = None,
     reviews: Mapping[str, Any] | None = None,
     metadata: Mapping[str, Any] | None = None,
+    campaigns: Mapping[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     """Create the fleet-level report used by the API and HTML/Markdown views."""
@@ -762,6 +763,32 @@ def build_fleet_audit_report(
         for index, finding in enumerate(public_findings[:5])
     ]
 
+    executive_summary: dict[str, Any] = {
+        "findings": len(public_findings),
+        "severity_counts": _severity_counts(public_findings),
+        "critical_agents": packet["summary"]["critical_agents"],
+        "review_status": packet["summary"]["pending_reviews"],
+        # Board-facing one-page rollup: what a CISO hands upward. Every number
+        # is derived from the same verified findings as the rest of the report —
+        # reproducible, not editorialized.
+        "top_risks": top_risks,
+        "framework_coverage": {
+            "frameworks": len(framework_coverage),
+            "controls": sum(len(row["controls"]) for row in framework_coverage),
+        },
+        "review_status_counts": dict(sorted(review_status_counts.items())),
+    }
+    if campaigns:
+        # Recurring-recertification posture: what an auditor asks after "are you
+        # reviewing agent access?" — how many campaigns, how complete, how many
+        # overdue. Signed decisions live in the ledger; this is the rollup.
+        executive_summary["certification_campaigns"] = {
+            "total": campaigns.get("total", 0),
+            "open": campaigns.get("open", 0),
+            "complete": campaigns.get("complete", 0),
+            "overdue": campaigns.get("overdue", 0),
+        }
+
     return {
         "schema_version": "0.1",
         "generated_at": packet["generated_at"],
@@ -772,21 +799,8 @@ def build_fleet_audit_report(
             "delegation_edges": len(delegation_edges),
             "what_was_analyzed": "Agent configuration metadata: grants, declared purpose, ownership, usage, and delegation. No agent payload data was analyzed.",
         },
-        "executive_summary": {
-            "findings": len(public_findings),
-            "severity_counts": _severity_counts(public_findings),
-            "critical_agents": packet["summary"]["critical_agents"],
-            "review_status": packet["summary"]["pending_reviews"],
-            # Board-facing one-page rollup: what a CISO hands upward. Every
-            # number is derived from the same verified findings as the rest of
-            # the report — reproducible, not editorialized.
-            "top_risks": top_risks,
-            "framework_coverage": {
-                "frameworks": len(framework_coverage),
-                "controls": sum(len(row["controls"]) for row in framework_coverage),
-            },
-            "review_status_counts": dict(sorted(review_status_counts.items())),
-        },
+        "executive_summary": executive_summary,
+        "certification_campaigns": dict(campaigns) if campaigns else None,
         "control_mapping": controls,
         # Structured, versioned framework references aggregated across the
         # verified findings — auditor context, not a compliance certification.
@@ -874,6 +888,30 @@ def render_markdown_report(report: Mapping[str, Any]) -> str:
                 + "."
             )
         lines.append("")
+
+    campaigns = report.get("certification_campaigns")
+    if campaigns:
+        lines.extend(
+            [
+                "## Certification campaigns",
+                "",
+                f"{campaigns.get('total', 0)} campaign(s): "
+                f"{campaigns.get('open', 0)} open, {campaigns.get('complete', 0)} complete, "
+                f"{campaigns.get('overdue', 0)} overdue, {campaigns.get('closed', 0)} closed. "
+                "Each decision is a signed, tamper-evident ledger event.",
+                "",
+                "| Campaign | Status | Progress | Due |",
+                "| --- | --- | ---: | --- |",
+            ]
+        )
+        for row in campaigns.get("campaigns", []):
+            lines.append(
+                f"| {row.get('name', '')} | {row.get('status', '')} | "
+                f"{row.get('decided', 0)}/{row.get('agents', 0)} ({row.get('completion_pct', 0)}%) | "
+                f"{row.get('due_at') or '—'} |"
+            )
+        lines.append("")
+
     lines.extend(
         [
             "## Control mapping",
