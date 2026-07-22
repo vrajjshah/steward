@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-07-21
+
 ### Added
 - **Benchmark multi-run aggregation (`llm-benchmark --live --runs N`)**: the
   accuracy benchmark can now run several times and record mean/min/max per
@@ -221,5 +223,6 @@ First public release.
   at the model as `[REDACTED]`; the committed demo cache now records complete
   (34/34) tool classification. Credential-shaped strings are still masked.
 
-[Unreleased]: https://github.com/vrajjshah/steward/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/vrajjshah/steward/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/vrajjshah/steward/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vrajjshah/steward/releases/tag/v0.1.0

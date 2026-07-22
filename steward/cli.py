@@ -1005,6 +1005,6 @@ def campaign_close(
 
 @app.command()
 def version() -> None:
-    """Print the v0.1 CLI version."""
+    """Print the CLI version."""
 
-    typer.echo("Steward 0.1.0")
+    typer.echo("Steward 0.2.0")
