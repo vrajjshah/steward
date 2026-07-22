@@ -379,6 +379,23 @@ steward analyze --no-llm --traces traces.jsonl --fail-on-drift
 
 The full findings and reconciliation report are printed before the non-zero exit, so the CI log carries the evidence a reviewer needs.
 
+### Review what a change actually did (`steward diff`)
+
+The recurring governance question is not "is this fleet risky?" but "what did *this change* do to it?" `steward diff` compares two fleet snapshots deterministically — agents added or removed, owner changes, direct-grant and delegation deltas, effective-access expansions (flagging any newly reachable high-impact capability), and the findings introduced, resolved, or still persisting — plus the change in aggregate risk exposure:
+
+```bash
+# Human-readable change review between two snapshots
+steward diff --before-fleet main.json --after-fleet pr.json
+
+# CI gate that blocks only NEWLY introduced risk — pre-existing debt never fails a merge
+steward diff --before-fleet main.json --after-fleet pr.json --fail-on-new high
+
+# Export the review for the audit trail
+steward diff --before-fleet main.json --after-fleet pr.json --markdown review.md --json review.json
+```
+
+`--fail-on-new` is the change-review upgrade over `--fail-on`: it fires only for findings the change *introduced* at or above the threshold, so a backlog of known issues doesn't block unrelated pull requests while a newly granted toxic pair does. This is a config-time snapshot diff, not an event log — a renamed agent id reads as one removal plus one addition.
+
 ## How Steward compares
 
 Honest positioning — what Steward is next to the things it will be compared with:

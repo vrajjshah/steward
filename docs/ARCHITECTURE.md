@@ -96,6 +96,24 @@ Events naming an agent or tool the inventory has never heard of stay visible as
 unrecognized entries (a retired identity still running is itself a governance
 signal) rather than being silently dropped.
 
+### Change review (`steward diff`)
+
+`steward/diffing.py` answers the recurring IGA question — *what did this change
+do?* — by analyzing two fleet snapshots with the deterministic floor (no model
+calls) and comparing the results: agents added/removed, owner changes,
+direct-grant and delegation-edge deltas, effective-access expansions (with
+newly reachable high-impact capabilities called out via `capability_classes`),
+and findings matched across snapshots by `(check_type, agent_id, rule_id)` into
+*introduced*, *resolved*, and *persisting* sets. Because both sides run the same
+pure analysis, the diff — including its findings — is reproducible.
+
+The `--fail-on-new` gate exits non-zero **only for newly introduced** findings
+at or above a severity, which is the change-review upgrade over the absolute
+`--fail-on`: a backlog of pre-existing findings never blocks an unrelated pull
+request, but newly added risk does. This is a config-time snapshot diff, not an
+event log; a renamed agent id reads as one removal plus one addition, since ids
+are the only stable identity the graph has.
+
 ## 3. System architecture
 
 ```mermaid

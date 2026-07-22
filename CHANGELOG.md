@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Access change review (`steward diff`)**: compares two fleet snapshots
+  deterministically — agents added/removed, owner changes, direct-grant and
+  delegation deltas, effective-access expansions (flagging newly reachable
+  high-impact capabilities), findings introduced/resolved/persisting, and the
+  change in aggregate risk exposure. `--fail-on-new <severity>` is the
+  change-review CI gate: it fails a build only for findings the change
+  *introduces* at or above the threshold, so pre-existing debt never blocks an
+  unrelated merge. Optional `--json` / `--markdown` exports for the audit trail.
+  A config-time snapshot diff (not an event log); a renamed agent id reads as a
+  removal plus an addition.
 - **CI gating flags on `steward analyze`**: `--fail-on <severity>` exits non-zero
   when any finding at or above the threshold exists, and `--fail-on-drift` (with
   `--traces`) exits non-zero on used-but-not-granted access or unknown identities

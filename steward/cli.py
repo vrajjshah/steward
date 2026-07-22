@@ -2,12 +2,19 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
 from steward.adapters import AdapterError, load_mcp_config
+from steward.diffing import (
+    diff_fleets,
+    introduced_findings_at_or_above,
+    render_diff_markdown,
+    render_diff_summary,
+)
 from steward.enforce import create_enforcement_app
 from steward.ledger import AuditLedger, LedgerError, LedgerKeyError
 from steward.loaders import load_inventory
@@ -324,6 +331,90 @@ def analyze(
         report.parent.mkdir(parents=True, exist_ok=True)
         report.write_text(render_markdown_report(report_payload), encoding="utf-8")
         typer.echo(f"Wrote Markdown audit report: {report}")
+
+
+@app.command()
+def diff(
+    before_fleet: Annotated[
+        Path, typer.Option(help="Path to the BEFORE fleet JSON snapshot.")
+    ],
+    after_fleet: Annotated[
+        Path, typer.Option(help="Path to the AFTER fleet JSON snapshot.")
+    ],
+    before_tools: Annotated[
+        Path | None,
+        typer.Option(help="Tool catalog for the BEFORE snapshot (defaults to data/tools.json)."),
+    ] = None,
+    after_tools: Annotated[
+        Path | None,
+        typer.Option(help="Tool catalog for the AFTER snapshot (defaults to data/tools.json)."),
+    ] = None,
+    json_out: Annotated[
+        Path | None,
+        typer.Option("--json", help="Write the full diff as JSON to this path."),
+    ] = None,
+    markdown_out: Annotated[
+        Path | None,
+        typer.Option("--markdown", help="Write a readable Markdown change-review report."),
+    ] = None,
+    fail_on_new: Annotated[
+        str | None,
+        typer.Option(
+            "--fail-on-new",
+            help="Exit non-zero only when a change INTRODUCES a finding at or above this "
+            "severity (critical|high|medium|low). The CI-friendly gate: pre-existing debt "
+            "never blocks a merge, only newly added risk does.",
+        ),
+    ] = None,
+) -> None:
+    """Review what changed in access posture between two fleet snapshots."""
+
+    if fail_on_new is not None and fail_on_new.strip().lower() not in {
+        "critical",
+        "high",
+        "medium",
+        "low",
+    }:
+        raise typer.BadParameter(
+            "Use one of: critical, high, medium, low.", param_hint="--fail-on-new"
+        )
+
+    try:
+        before = load_inventory(before_fleet, before_tools or DEFAULT_TOOLS)
+        after = load_inventory(after_fleet, after_tools or DEFAULT_TOOLS)
+    except (FileNotFoundError, ValueError) as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    diff_result = diff_fleets(
+        before[0],
+        before[1],
+        after[0],
+        after[1],
+        before_label=str(before_fleet),
+        after_label=str(after_fleet),
+    )
+    typer.echo(render_diff_summary(diff_result))
+
+    if json_out:
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        json_out.write_text(
+            json.dumps(diff_result.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8"
+        )
+        typer.echo(f"Wrote diff JSON: {json_out}")
+    if markdown_out:
+        markdown_out.parent.mkdir(parents=True, exist_ok=True)
+        markdown_out.write_text(render_diff_markdown(diff_result), encoding="utf-8")
+        typer.echo(f"Wrote Markdown change review: {markdown_out}")
+
+    if fail_on_new is not None:
+        gating = introduced_findings_at_or_above(diff_result, fail_on_new)
+        if gating:
+            typer.echo(
+                f"GATE FAILED: {len(gating)} newly introduced finding(s) at or above "
+                f"severity '{fail_on_new}'.",
+                err=True,
+            )
+            raise typer.Exit(code=1)
 
 
 @app.command()
