@@ -349,6 +349,8 @@ Every agent gets a risk card with identity, owner, direct/effective access, find
 
 Each finding also carries structured, versioned control-framework references — NIST SP 800-53 Rev. 5, SOC 2 TSC, ISO/IEC 27001:2022, SOX ITGC, and the EU AI Act — summarized in a coverage matrix. That is auditor context in the auditor's language, deliberately not a compliance certification.
 
+Auditors want a PDF. The report page has a **Print / PDF** button and a print stylesheet that hides the navigation, prints black-on-white, keeps sections and tables from splitting awkwardly across pages, and adds page margins — so a browser's "Save as PDF" produces a clean, self-contained audit artifact with zero extra dependencies (no headless browser or PDF library in the stack).
+
 The **Granted vs. Needed** signal is shown separately from deterministic findings. It is model-assisted inference from the agent's declared purpose, not a claim about observed runtime necessity. It is not scored by the deterministic synthetic-fleet eval.
 
 After `steward init`, a dashboard/API analysis appends a signed event for every

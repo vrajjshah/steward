@@ -261,4 +261,23 @@ td small { color: var(--faint); display: block; font-family: monospace; font-siz
 @media print {
   :root { --paper: #fff; --panel: #fff; --panel-raised: #fff; --ink: #131722; --muted: #556072; --faint: #667085; --line: #d9dfeb; }
   body { background: #fff; color: #131722; }.topbar, footer, .no-print, .back-link { display: none !important; }main { max-width: none; padding: 0; }.report-header { padding-top: 0; }.finding-card, .detail-panel, .review-panel, .report-summary-card { break-inside: avoid; box-shadow: none; }.finding-card > p, .report-header p, .report-prose { color: #293244; }.evidence-chip, .access-list li { background: #f7f8fb; border-color: #ccd5e5; }.evidence-chip code { color: #263f72; }.risk-pill { border: 1px solid currentColor; }.table-wrap { overflow: visible; }
+  /* Print/PDF layout: page margins, keep sections and tables whole, keep a
+     heading with the content it introduces, and print links as plain black. */
+  @page { margin: 1.5cm; }
+  h1, h2, h3 { break-after: avoid; }
+  .report-section, .report-summary-grid, .control-mapping, .review-panel, table { break-inside: avoid; }
+  .report-section { break-before: auto; margin-top: 0; padding-top: 18px; }
+  .report-header { break-after: avoid; border-bottom: 1px solid #d9dfeb; }
+  a, a:visited { color: #131722 !important; text-decoration: none; }
+  /* Dark-styled panels use hardcoded colors, not theme vars, so override them
+     explicitly for legible black-on-white printing. */
+  .report-enrichment, .enrichment-status, .enrichment-operation, .enrichment-mode {
+    background: #fff !important; border-color: #ccd5e5 !important; break-inside: avoid;
+  }
+  .enrichment-operation { background: #f7f8fb !important; }
+  .report-enrichment p, .enrichment-status p, .enrichment-operation > span,
+  .enrichment-operation > small { color: #556072 !important; }
+  .enrichment-status-heading strong, .enrichment-operation > strong, .enrichment-mode {
+    color: #131722 !important;
+  }
 }

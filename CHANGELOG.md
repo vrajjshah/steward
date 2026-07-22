@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Print/PDF-friendly audit report**: the report page gained a "Print / PDF"
+  button and an expanded print stylesheet — page margins, section and table
+  break-avoidance, headings kept with their content, black-on-white overrides
+  for the dark-styled panels, and plain-text links — so a browser's Save-as-PDF
+  yields a clean, self-contained audit artifact with zero new dependencies (no
+  headless browser or PDF library). Verified with headless-Chrome print-to-PDF.
 - **Agent-framework export readers (`steward import`)**: three file readers —
   LangGraph, CrewAI, and the OpenAI Agents SDK — that map a framework's static
   JSON export onto Steward's native fleet/tool graph, with no framework SDK
