@@ -16,6 +16,7 @@ from typing import Any
 
 from steward.control_mapping import PROCESS_CONTROLS, control_framework_coverage
 from steward.incident_grounding import TOKEN_REPLAY_CONTEXT
+from steward.peer_analysis import analyze_peer_groups
 
 CONTROL_MAPPINGS: dict[str, str] = {
     "sod": "SOX ITGC — segregation of duties",
@@ -789,6 +790,17 @@ def build_fleet_audit_report(
             "overdue": campaigns.get("overdue", 0),
         }
 
+    # Peer-group outlier analytics: a heuristic derived purely from effective
+    # access, clearly labeled as analytics (not findings). Computed here so both
+    # the CLI report and the dashboard surface it without extra wiring.
+    peer_analysis = (
+        analyze_peer_groups(effective_access).model_dump(mode="json")
+        if effective_access
+        else None
+    )
+    if peer_analysis and peer_analysis.get("outliers"):
+        executive_summary["peer_outliers"] = len(peer_analysis["outliers"])
+
     return {
         "schema_version": "0.1",
         "generated_at": packet["generated_at"],
@@ -801,6 +813,7 @@ def build_fleet_audit_report(
         },
         "executive_summary": executive_summary,
         "certification_campaigns": dict(campaigns) if campaigns else None,
+        "peer_analytics": peer_analysis,
         "control_mapping": controls,
         # Structured, versioned framework references aggregated across the
         # verified findings — auditor context, not a compliance certification.
@@ -910,6 +923,21 @@ def render_markdown_report(report: Mapping[str, Any]) -> str:
                 f"{row.get('decided', 0)}/{row.get('agents', 0)} ({row.get('completion_pct', 0)}%) | "
                 f"{row.get('due_at') or '—'} |"
             )
+        lines.append("")
+
+    peer = report.get("peer_analytics")
+    if peer and peer.get("applicable") and peer.get("outliers"):
+        lines.extend(
+            [
+                "## Peer-group outlier analytics",
+                "",
+                f"_{peer.get('note', '')}_ (heuristic, not a finding; "
+                f"similarity threshold {peer.get('similarity_threshold')}).",
+                "",
+            ]
+        )
+        for outlier in peer["outliers"]:
+            lines.append(f"- `{outlier.get('agent_id', '')}` — {outlier.get('reason', '')}")
         lines.append("")
 
     lines.extend(

@@ -468,6 +468,14 @@ steward campaign close q3-recert                         # requires all decision
 
 Scope by explicit agent ids (`--scope-agents a,b`), a severity floor (`--scope-min-severity`), a risk-score floor (`--scope-min-risk-score`), or the whole fleet (`--scope-all`). State lives in `.steward/campaigns.json` beside the ledger and survives restarts; the audit report grows a **certification-campaigns** section (open / complete / overdue counts and per-campaign progress). Honest scope: this is a single-reviewer local workflow with a tamper-evident evidence trail — not multi-approver enterprise routing or SoD on the reviewers themselves.
 
+### Peer-group outlier analytics
+
+Rule-based checks catch *known* toxic patterns; peer analytics catches the *unknown* — an agent whose effective access looks like nobody else's, often a sign of an over-grant or a misconfigured identity. Steward compares every pair of agents by Jaccard similarity of their effective tool sets and flags any agent that is isolated from all its peers while still holding meaningful access. It surfaces automatically in the audit report:
+
+> `report_bot` — Holds 3 effective tools (2 high-impact: delete_records, export_data), but overlaps at most 25% with any peer (closest: bi_bot) — an access profile unlike the rest of the fleet, worth a look for over-grant.
+
+This is a **heuristic analytics section, not a finding** — an unusual access profile is a statistical signal, not a specific policy violation, so (like the Granted-vs-Needed reconciliation) it never enters the citation-gated findings set and Steward's four `check_type`s stay closed. Honest limit: on a small fleet, "unlike its peers" is indicative, not statistical — a legitimately unique role reads the same as a mistake. All thresholds live in one documented place in [`steward/peer_analysis.py`](steward/peer_analysis.py).
+
 ## How Steward compares
 
 Honest positioning — what Steward is next to the things it will be compared with:

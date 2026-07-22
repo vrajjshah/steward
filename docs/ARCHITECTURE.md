@@ -175,6 +175,22 @@ complete / overdue counts and per-campaign progress) in its executive summary.
 Honest scope: a single-reviewer local workflow with a tamper-evident evidence
 trail — not multi-approver routing or SoD on the reviewers themselves.
 
+### Peer-group outlier analytics
+
+`steward/peer_analysis.py` adds an unsupervised complement to the rule-based
+checks: it computes pairwise Jaccard similarity over agents' *effective* access
+sets and flags any agent isolated from every peer (max similarity at or below a
+threshold) while still holding enough access to matter. Like the
+Granted-vs-Needed reconciliation, its output is deliberately **not** a `Finding`
+— an unusual access profile is a statistical signal that can't satisfy the
+graph-citation contract, so it is a clearly labeled analytics section and the
+closed four-member `check_type` set is preserved (gotcha: signals that can't
+cite stay analytics). It is computed inside the report builder straight from the
+effective-access map, so the CLI report and the dashboard both surface it with
+no extra wiring. Every threshold lives in one place and is echoed into the
+output; the honest caveat — small-fleet peer comparison is indicative, not
+statistical — travels with the section.
+
 ## 3. System architecture
 
 ```mermaid

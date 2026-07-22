@@ -7,6 +7,16 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Peer-group outlier analytics**: a deterministic heuristic that flags agents
+  whose *effective* access is unlike any peer's (pairwise Jaccard similarity;
+  an agent isolated from every peer while holding enough access is flagged),
+  the unsupervised complement to the rule-based checks for spotting likely
+  over-grants. It is deliberately **not** a `Finding` — an unusual access
+  profile can't satisfy the graph-citation contract — so it surfaces as a
+  clearly labeled analytics section in the audit report (computed straight from
+  the effective-access map, so the CLI report and dashboard both show it), and
+  the closed four-member `check_type` set is preserved. Thresholds live in one
+  documented place; the small-fleet honesty caveat travels with the output.
 - **Recurring certification campaigns (`steward campaign`)**: a scoped
   recertification workflow — `start` (scope by explicit agents, a severity or
   risk-score floor, or all, with an optional due date), `status`, `decide`
