@@ -134,6 +134,31 @@ minimal, and some findings (an ownerless agent; an over-privilege finding whose
 multiple unused grants must go together) fall outside a one-lever-per-step
 plan — each carries its own recommended action instead.
 
+### SoD policy-as-code: rule packs (`--rules`)
+
+`steward/rulepacks.py` loads client-specific YAML rule packs that **extend**,
+never replace, the built-in deterministic floor. A pack declares extra toxic
+combinations, delegated-high-risk capabilities, and capability-class ids; the
+loader validates it strictly (clear errors, and a pack rule id may not collide
+with a built-in one) and merges packs additively. Two design decisions:
+
+- **Additive, not override.** Built-in findings are unchanged; pack rules become
+  ordinary `source="deterministic"` findings that reuse the existing SoD /
+  escalation checks (passed in as extra `ToxicCapabilityRule` /
+  `DelegatedHighRiskRule` entries) and get control-framework annotation by check
+  type for free. The eval golden set never loads packs, so the 1.000 gate is
+  untouched — a regression test asserts pack-free analysis is byte-identical.
+- **Lenient on unknown tools.** Packs are meant to be portable across fleets, so
+  a rule naming a tool absent from the loaded catalog simply never fires and is
+  reported as an inert-rule note rather than an error.
+
+The capability-class extensions are threaded through a single `CapabilityClasses`
+value object (defined beside the canonical sets in `capability_classes.py`, so
+the vocabulary is never forked): scoring and the lethal-trifecta check take it as
+a parameter, defaulting to the built-in classes, so a pack's high-impact /
+sensitive-read / untrusted-content / exfiltration ids influence the risk score
+and complete a trifecta on the client's own tool names.
+
 ## 3. System architecture
 
 ```mermaid

@@ -26,11 +26,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from .capability_classes import (
-    HIGH_IMPACT_TOOL_IDS,
-    SENSITIVE_READ_TOOL_IDS,
-    UNTRUSTED_CONTENT_TOOL_IDS,
-)
+from .capability_classes import DEFAULT_CAPABILITY_CLASSES, CapabilityClasses
 from .graph import EffectiveAccessGraph
 from .models import Finding, Fleet
 
@@ -44,7 +40,11 @@ UNTRUSTED_EXPOSURE_POINTS = 10
 MAX_SCORE = 100
 
 
-def score_finding(finding: Finding, graph: EffectiveAccessGraph) -> Finding:
+def score_finding(
+    finding: Finding,
+    graph: EffectiveAccessGraph,
+    capability_classes: CapabilityClasses = DEFAULT_CAPABILITY_CLASSES,
+) -> Finding:
     """Return a copy of the finding carrying its reproducible score breakdown."""
 
     effective = graph.effective_tools(finding.agent_id)
@@ -55,10 +55,10 @@ def score_finding(finding: Finding, graph: EffectiveAccessGraph) -> Finding:
 
     base = SEVERITY_BASE_POINTS.get(finding.severity, SEVERITY_BASE_POINTS["low"])
     blast_radius = min(
-        len(effective & HIGH_IMPACT_TOOL_IDS) * BLAST_RADIUS_POINTS_PER_CAPABILITY,
+        len(effective & capability_classes.high_impact) * BLAST_RADIUS_POINTS_PER_CAPABILITY,
         BLAST_RADIUS_CAP,
     )
-    data_sensitivity = DATA_SENSITIVITY_POINTS if effective & SENSITIVE_READ_TOOL_IDS else 0
+    data_sensitivity = DATA_SENSITIVITY_POINTS if effective & capability_classes.sensitive_read else 0
     if cited_tools & direct:
         exploitability = DIRECT_GRANT_POINTS
     elif cited_tools:
@@ -66,7 +66,7 @@ def score_finding(finding: Finding, graph: EffectiveAccessGraph) -> Finding:
     else:
         exploitability = 0
     untrusted_exposure = (
-        UNTRUSTED_EXPOSURE_POINTS if effective & UNTRUSTED_CONTENT_TOOL_IDS else 0
+        UNTRUSTED_EXPOSURE_POINTS if effective & capability_classes.untrusted_content else 0
     )
 
     factors = {
@@ -88,6 +88,7 @@ def score_and_rank_findings(
     findings: Iterable[Finding],
     fleet: Fleet,
     graph: EffectiveAccessGraph | None = None,
+    capability_classes: CapabilityClasses = DEFAULT_CAPABILITY_CLASSES,
 ) -> list[Finding]:
     """Score every finding and order the list by descending risk.
 
@@ -97,5 +98,5 @@ def score_and_rank_findings(
     """
 
     graph = graph or EffectiveAccessGraph(fleet)
-    scored = [score_finding(finding, graph) for finding in findings]
+    scored = [score_finding(finding, graph, capability_classes) for finding in findings]
     return sorted(scored, key=lambda finding: (-(finding.risk_score or 0), finding.id))

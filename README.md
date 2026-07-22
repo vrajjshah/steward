@@ -419,6 +419,41 @@ steward remediate
 
 The plan is a **proposal for human review**: it optimizes finding count and risk score, not business feasibility, and greedy is not provably minimal. A person decides; nothing is applied automatically.
 
+### Bring your own SoD matrix (`--rules`)
+
+Steward's built-in rules cover the crown-jewel conflicts, but every organization has its own segregation-of-duties matrix. A **rule pack** is a small YAML file that extends the built-in floor with your toxic combinations, delegated-high-risk capabilities, and capability-class vocabulary — no code change:
+
+```yaml
+# finance_sod_pack.yaml
+toxic_combinations:
+  - rule_id: erp_post_and_approve_journal
+    tool_ids: [post_journal_entry, approve_journal_entry]   # 2+ tool ids
+    severity: critical
+    title: "Record-to-report SoD: post and approve the same journal entry"
+    business_risk: "…"
+    recommended_action: "…"
+    control_mapping: "SOX ITGC — segregation of duties (posting vs. approval)"
+delegated_high_risk:
+  - tool_id: release_payment_run
+    rule_id: delegated_payment_run_release
+    severity: high
+    title: "Delegated payment-run release blast radius"
+    business_risk: "…"
+    recommended_action: "…"
+    control_mapping: "Identity governance — effective access review"
+capability_classes:            # extend scoring + the lethal-trifecta vocabulary
+  high_impact: [release_payment_run, approve_journal_entry]
+  sensitive_read: [read_general_ledger, read_bank_statements]
+  untrusted_content: [ingest_vendor_invoice_email]
+  exfiltration: [export_financial_report]
+```
+
+```bash
+steward analyze --rules examples/rules/finance_sod_pack.yaml     # repeatable
+```
+
+`--rules` works on `analyze`, `diff`, `simulate`, `remediate`, and `policy generate`. Pack rules are **additive**: the built-in floor is unchanged, pack findings are ordinary deterministic findings that carry your `rule_id` and get control-framework annotation for free, and the capability-class extensions feed the risk score and the lethal-trifecta check so both speak your tool vocabulary. Packs are portable — a rule naming a tool absent from the loaded catalog simply never fires (reported as an inert-rule note). Matching is by tool id, the same honest limitation as the built-in rules. A ready-to-adapt example ships at [`examples/rules/finance_sod_pack.yaml`](examples/rules/finance_sod_pack.yaml).
+
 ## How Steward compares
 
 Honest positioning — what Steward is next to the things it will be compared with:

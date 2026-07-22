@@ -16,11 +16,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
-from .capability_classes import (
-    EXFILTRATION_TOOL_IDS,
-    SENSITIVE_READ_TOOL_IDS,
-    UNTRUSTED_CONTENT_TOOL_IDS,
-)
+from .capability_classes import DEFAULT_CAPABILITY_CLASSES, CapabilityClasses
 from .control_mapping import annotate_findings_with_control_frameworks
 from .graph import AccessProvenance, EffectiveAccessGraph, delegation_edge_id
 from .incident_grounding import ground_findings_in_real_world_context
@@ -375,6 +371,7 @@ LETHAL_TRIFECTA_SOURCE = RealWorldIncident(
 def find_lethal_trifecta(
     fleet: Fleet,
     graph: EffectiveAccessGraph | None = None,
+    capability_classes: CapabilityClasses = DEFAULT_CAPABILITY_CLASSES,
 ) -> list[Finding]:
     """Flag agents whose effective access spans all three trifecta classes.
 
@@ -391,9 +388,11 @@ def find_lethal_trifecta(
     for agent in sorted(fleet.agents, key=lambda item: item.id):
         effective_tools = graph.effective_tools(agent.id)
         legs = {
-            "private-data access": sorted(effective_tools & SENSITIVE_READ_TOOL_IDS),
-            "untrusted-content exposure": sorted(effective_tools & UNTRUSTED_CONTENT_TOOL_IDS),
-            "exfiltration channel": sorted(effective_tools & EXFILTRATION_TOOL_IDS),
+            "private-data access": sorted(effective_tools & capability_classes.sensitive_read),
+            "untrusted-content exposure": sorted(
+                effective_tools & capability_classes.untrusted_content
+            ),
+            "exfiltration channel": sorted(effective_tools & capability_classes.exfiltration),
         }
         if not all(legs.values()):
             continue
@@ -464,21 +463,62 @@ def find_orphans(fleet: Fleet) -> list[Finding]:
     return findings
 
 
+@dataclass(frozen=True)
+class RulePack:
+    """Additive, client-specific detection vocabulary loaded from a YAML pack.
+
+    A pack extends the always-on built-in floor: extra toxic combinations and
+    delegated-high-risk rules become ordinary ``source="deterministic"``
+    findings, and the capability-class extensions feed scoring and the trifecta
+    check so both understand the client's own tool ids. The empty default keeps
+    every existing code path byte-identical.
+    """
+
+    sod_rules: tuple[ToxicCapabilityRule, ...] = ()
+    delegated_rules: tuple[DelegatedHighRiskRule, ...] = ()
+    capability_classes: CapabilityClasses = DEFAULT_CAPABILITY_CLASSES
+
+    @property
+    def rule_ids(self) -> tuple[str, ...]:
+        return tuple(rule.rule_id for rule in (*self.sod_rules, *self.delegated_rules))
+
+
+# Every rule id the built-in floor emits. A pack may not reuse one, so pack
+# findings never collide with a built-in finding's id.
+BUILTIN_RULE_IDS = frozenset(
+    {rule.rule_id for rule in CROWN_JEWEL_SOD_RULES}
+    | {rule.rule_id for rule in DELEGATED_HIGH_RISK_RULES}
+    | {"lethal_trifecta", "unused_granted_tools", "missing_owner"}
+)
+
+
 def run_deterministic_checks(
     fleet: Fleet,
     tools: ToolCatalog | None = None,
     graph: EffectiveAccessGraph | None = None,
+    *,
+    rule_pack: RulePack | None = None,
 ) -> list[Finding]:
-    """Run all four deterministic v0.1 check types and suppress bad evidence."""
+    """Run all four deterministic check types and suppress bad evidence.
+
+    An optional ``rule_pack`` adds client-specific toxic combinations and
+    delegated-high-risk rules and extends the capability classes used by
+    scoring and the trifecta. Pack rules are additive; the built-in floor is
+    unchanged, so ``rule_pack=None`` reproduces the original output exactly.
+    """
 
     if tools is not None:
         validate_inventory(fleet, tools)
     graph = graph or EffectiveAccessGraph(fleet)
+    pack = rule_pack or RulePack()
+    capability_classes = pack.capability_classes
     findings = [
-        *find_sod_violations(fleet, graph),
-        *find_lethal_trifecta(fleet, graph),
+        *find_sod_violations(fleet, graph, rules=(*CROWN_JEWEL_SOD_RULES, *pack.sod_rules)),
+        *find_lethal_trifecta(fleet, graph, capability_classes),
         *find_over_privilege(fleet, graph),
-        *find_escalation_paths(fleet, graph),
+        *find_escalation_paths(
+            fleet, graph, rules=(*DELEGATED_HIGH_RISK_RULES, *pack.delegated_rules)
+        ),
         *find_orphans(fleet),
     ]
     # External incident and control-framework annotations plus the composite
@@ -493,20 +533,24 @@ def run_deterministic_checks(
         ),
         fleet,
         graph,
+        capability_classes,
     )
 
 
-def analyze_fleet(fleet: Fleet, tools: ToolCatalog) -> AnalysisResult:
+def analyze_fleet(
+    fleet: Fleet, tools: ToolCatalog, *, rule_pack: RulePack | None = None
+) -> AnalysisResult:
     """Build graph-derived access maps and run the deterministic safety floor.
 
     This is the preferred public entry point for an API, CLI, or report layer.
     A caller with Bedrock configured can enrich its output afterwards; the same
-    result still carries the deterministic citations required for trust.
+    result still carries the deterministic citations required for trust. An
+    optional ``rule_pack`` adds client-specific SoD rules and capability classes.
     """
 
     validate_inventory(fleet, tools)
     graph = EffectiveAccessGraph(fleet)
-    findings = run_deterministic_checks(fleet, tools, graph)
+    findings = run_deterministic_checks(fleet, tools, graph, rule_pack=rule_pack)
     direct_access = graph.direct_access_map()
     effective_access = graph.effective_access_map()
     delegation_paths = graph.delegation_paths_map()

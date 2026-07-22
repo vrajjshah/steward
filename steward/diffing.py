@@ -20,7 +20,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from .capability_classes import HIGH_IMPACT_TOOL_IDS
-from .findings import analyze_fleet
+from .findings import RulePack, analyze_fleet
 from .graph import delegation_edge_id
 from .models import Finding, Fleet, ToolCatalog
 
@@ -138,15 +138,17 @@ def diff_fleets(
     *,
     before_label: str = "before",
     after_label: str = "after",
+    rule_pack: RulePack | None = None,
 ) -> FleetDiff:
     """Compute the deterministic access delta between two loaded snapshots.
 
     Both sides are analyzed with the deterministic floor only (no model calls),
-    so the diff — including its findings — is reproducible and CI-safe.
+    so the diff — including its findings — is reproducible and CI-safe. An
+    optional ``rule_pack`` is applied to both sides so custom rules diff too.
     """
 
-    before = analyze_fleet(before_fleet, before_tools)
-    after = analyze_fleet(after_fleet, after_tools)
+    before = analyze_fleet(before_fleet, before_tools, rule_pack=rule_pack)
+    after = analyze_fleet(after_fleet, after_tools, rule_pack=rule_pack)
 
     before_ids = before_fleet.agent_ids
     after_ids = after_fleet.agent_ids

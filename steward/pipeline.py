@@ -15,8 +15,8 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from steward.control_mapping import annotate_findings_with_control_frameworks
+from steward.findings import RulePack, filter_valid_findings, verify_finding_evidence
 from steward.findings import analyze_fleet as deterministic_analyze_fleet
-from steward.findings import filter_valid_findings, verify_finding_evidence
 from steward.graph import EffectiveAccessGraph, delegation_edge_id
 from steward.incident_grounding import ground_findings_in_real_world_context
 from steward.llm import (
@@ -845,16 +845,18 @@ def analyze_fleet(
     *,
     llm: BedrockLLM | None = None,
     enable_llm: bool | None = None,
+    rule_pack: RulePack | None = None,
 ) -> AnalysisResult:
     """Run deterministic analysis and optional redaction-first Bedrock enrichment.
 
     ``enable_llm`` defaults to true outside demo mode. Missing model IDs simply
     yield deterministic results; no network request is attempted in that case.
     Tests can pass a fake :class:`BedrockLLM` to exercise the constrained
-    enrichment path without AWS credentials.
+    enrichment path without AWS credentials. An optional ``rule_pack`` adds
+    client-specific SoD rules and capability classes to the deterministic tier.
     """
 
-    result = deterministic_analyze_fleet(fleet, tools)
+    result = deterministic_analyze_fleet(fleet, tools, rule_pack=rule_pack)
     if enable_llm is None:
         demo_mode = os.getenv("STEWARD_DEMO", "").strip().lower() in {"1", "true", "yes"}
         enable_llm = not demo_mode
@@ -866,10 +868,12 @@ def analyze_fleet(
     # apply the same deterministic external-context and control-framework
     # mappings — and the reproducible risk score/rank — at the final public
     # pipeline boundary. This never changes whether a finding exists.
+    capability_classes = (rule_pack or RulePack()).capability_classes
     result.findings = score_and_rank_findings(
         annotate_findings_with_control_frameworks(
             ground_findings_in_real_world_context(result.findings)
         ),
         result.fleet,
+        capability_classes=capability_classes,
     )
     return result

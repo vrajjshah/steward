@@ -32,6 +32,7 @@ from steward.remediation import (
 )
 from steward.remediation import simulate as run_simulation
 from steward.reporting import build_fleet_audit_report, render_markdown_report
+from steward.rulepacks import RulePackError, inert_rule_ids, load_rule_packs
 from steward.traces import TraceReconciliation, apply_usage, load_traces, reconcile
 
 app = typer.Typer(
@@ -170,6 +171,25 @@ def _load_input(
     return fleet, tools, "fleet"
 
 
+def _load_rule_packs(paths: list[Path] | None, tools: ToolCatalog):
+    """Load and merge optional --rules packs, noting any rules that can't fire."""
+
+    if not paths:
+        return None
+    try:
+        pack = load_rule_packs(list(paths))
+    except (RulePackError, FileNotFoundError, OSError) as exc:
+        raise typer.BadParameter(str(exc), param_hint="--rules") from exc
+    inert = inert_rule_ids(pack, tools)
+    if inert:
+        typer.echo(
+            f"Note: {len(inert)} rule pack rule(s) reference tools absent from this catalog "
+            f"and will not fire: {', '.join(inert)}.",
+            err=True,
+        )
+    return pack
+
+
 def _echo_reconciliation(reconciliation: TraceReconciliation) -> None:
     """Print the Granted vs. Used vs. Needed runtime summary."""
 
@@ -251,6 +271,13 @@ def analyze(
             "(used-but-not-granted access or unknown agent identities).",
         ),
     ] = False,
+    rules: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--rules",
+            help="Custom SoD rule-pack YAML to apply on top of the built-in rules. Repeatable.",
+        ),
+    ] = None,
     state_dir: Annotated[
         Path,
         typer.Option(
@@ -283,7 +310,10 @@ def analyze(
         # Observed usage replaces the inventory's usage log for observed
         # agents, so the over-privilege check runs on real runtime data.
         loaded_fleet = apply_usage(loaded_fleet, trace_log, loaded_tools)
-    result = analyze_fleet(loaded_fleet, loaded_tools, enable_llm=False if no_llm else None)
+    rule_pack = _load_rule_packs(rules, loaded_tools)
+    result = analyze_fleet(
+        loaded_fleet, loaded_tools, enable_llm=False if no_llm else None, rule_pack=rule_pack
+    )
     typer.echo(
         f"Analyzed {len(loaded_fleet.agents)} agents / {len(loaded_tools.tools)} tools "
         f"from {source}: {len(result.findings)} cited findings."
@@ -373,6 +403,13 @@ def diff(
             "never blocks a merge, only newly added risk does.",
         ),
     ] = None,
+    rules: Annotated[
+        list[Path] | None,
+        typer.Option(
+            "--rules",
+            help="Custom SoD rule-pack YAML applied to both snapshots. Repeatable.",
+        ),
+    ] = None,
 ) -> None:
     """Review what changed in access posture between two fleet snapshots."""
 
@@ -392,6 +429,7 @@ def diff(
     except (FileNotFoundError, ValueError) as exc:
         raise typer.BadParameter(str(exc)) from exc
 
+    rule_pack = _load_rule_packs(rules, after[1])
     diff_result = diff_fleets(
         before[0],
         before[1],
@@ -399,6 +437,7 @@ def diff(
         after[1],
         before_label=str(before_fleet),
         after_label=str(after_fleet),
+        rule_pack=rule_pack,
     )
     typer.echo(render_diff_summary(diff_result))
 
@@ -443,6 +482,10 @@ def simulate(
     fleet: Annotated[Path | None, typer.Option(help="Path to Steward fleet JSON.")] = None,
     tools: Annotated[Path | None, typer.Option(help="Path to tool catalog JSON.")] = None,
     mcp: Annotated[Path | None, typer.Option(help="Claude Desktop / Cursor mcp.json path.")] = None,
+    rules: Annotated[
+        list[Path] | None,
+        typer.Option("--rules", help="Custom SoD rule-pack YAML to apply. Repeatable."),
+    ] = None,
     json_out: Annotated[
         Path | None, typer.Option("--json", help="Write the simulated diff as JSON.")
     ] = None,
@@ -455,8 +498,9 @@ def simulate(
         raise typer.BadParameter("Provide at least one --revoke or --revoke-edge.")
 
     loaded_fleet, loaded_tools, _ = _load_input(fleet, tools, mcp)
+    rule_pack = _load_rule_packs(rules, loaded_tools)
     try:
-        diff_result = run_simulation(loaded_fleet, loaded_tools, revocations)
+        diff_result = run_simulation(loaded_fleet, loaded_tools, revocations, rule_pack=rule_pack)
     except RemediationError as exc:
         raise typer.BadParameter(str(exc)) from exc
 
@@ -476,6 +520,10 @@ def remediate(
     fleet: Annotated[Path | None, typer.Option(help="Path to Steward fleet JSON.")] = None,
     tools: Annotated[Path | None, typer.Option(help="Path to tool catalog JSON.")] = None,
     mcp: Annotated[Path | None, typer.Option(help="Claude Desktop / Cursor mcp.json path.")] = None,
+    rules: Annotated[
+        list[Path] | None,
+        typer.Option("--rules", help="Custom SoD rule-pack YAML to apply. Repeatable."),
+    ] = None,
     json_out: Annotated[
         Path | None, typer.Option("--json", help="Write the remediation plan as JSON.")
     ] = None,
@@ -483,7 +531,8 @@ def remediate(
     """Propose a greedy minimal set of revocations to clear findings (human-reviewed)."""
 
     loaded_fleet, loaded_tools, source = _load_input(fleet, tools, mcp)
-    plan = build_plan(loaded_fleet, loaded_tools, fleet_label=source)
+    rule_pack = _load_rule_packs(rules, loaded_tools)
+    plan = build_plan(loaded_fleet, loaded_tools, fleet_label=source, rule_pack=rule_pack)
     typer.echo(render_plan(plan))
     if json_out:
         json_out.parent.mkdir(parents=True, exist_ok=True)
@@ -609,6 +658,10 @@ def generate_policy_command(
     fleet: Annotated[Path | None, typer.Option(help="Path to Steward fleet JSON.")] = None,
     tools: Annotated[Path | None, typer.Option(help="Path to tool catalog JSON.")] = None,
     mcp: Annotated[Path | None, typer.Option(help="Claude Desktop / Cursor mcp.json path.")] = None,
+    rules: Annotated[
+        list[Path] | None,
+        typer.Option("--rules", help="Custom SoD rule-pack YAML to apply. Repeatable."),
+    ] = None,
     output: Annotated[
         Path,
         typer.Option("--output", "-o", help="Destination for the deterministic least-privilege policy YAML."),
@@ -617,9 +670,10 @@ def generate_policy_command(
     """Generate a default-deny policy from cited, deterministic analysis findings."""
 
     loaded_fleet, loaded_tools, source = _load_input(fleet, tools, mcp)
+    rule_pack = _load_rule_packs(rules, loaded_tools)
     # Policy generation is deliberately zero-key: it uses the analyzer's
     # deterministic floor and never consults optional Bedrock enrichment.
-    result = analyze_fleet(loaded_fleet, loaded_tools, enable_llm=False)
+    result = analyze_fleet(loaded_fleet, loaded_tools, enable_llm=False, rule_pack=rule_pack)
     policy = build_policy(result)
     target = write_policy(policy, output)
     typer.echo(

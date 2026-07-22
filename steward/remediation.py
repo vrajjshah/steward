@@ -22,7 +22,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from .diffing import FleetDiff, diff_fleets
-from .findings import analyze_fleet
+from .findings import RulePack, analyze_fleet
 from .graph import EffectiveAccessGraph
 from .models import Agent, Finding, Fleet, ToolCatalog
 
@@ -153,14 +153,24 @@ def apply_revocations(fleet: Fleet, revocations: list[Revocation]) -> Fleet:
 
 
 def simulate(
-    fleet: Fleet, tools: ToolCatalog, revocations: list[Revocation]
+    fleet: Fleet,
+    tools: ToolCatalog,
+    revocations: list[Revocation],
+    *,
+    rule_pack: RulePack | None = None,
 ) -> FleetDiff:
     """Apply revocations to a fleet copy and diff current vs. simulated."""
 
     validate_targets(fleet, revocations)
     simulated = apply_revocations(fleet, revocations)
     return diff_fleets(
-        fleet, tools, simulated, tools, before_label="current", after_label="simulated"
+        fleet,
+        tools,
+        simulated,
+        tools,
+        before_label="current",
+        after_label="simulated",
+        rule_pack=rule_pack,
     )
 
 
@@ -205,7 +215,13 @@ def _candidate_revocations(fleet: Fleet, findings: list[Finding]) -> set[Revocat
     return candidates
 
 
-def build_plan(fleet: Fleet, tools: ToolCatalog, *, fleet_label: str = "fleet") -> RemediationPlan:
+def build_plan(
+    fleet: Fleet,
+    tools: ToolCatalog,
+    *,
+    fleet_label: str = "fleet",
+    rule_pack: RulePack | None = None,
+) -> RemediationPlan:
     """Greedily choose a small revocation set that clears the most findings.
 
     Each step picks the candidate clearing the most still-open findings, with
@@ -215,7 +231,7 @@ def build_plan(fleet: Fleet, tools: ToolCatalog, *, fleet_label: str = "fleet") 
     orphans, which revocation cannot fix).
     """
 
-    result = analyze_fleet(fleet, tools)
+    result = analyze_fleet(fleet, tools, rule_pack=rule_pack)
     original_findings = result.findings
     key_to_title = {_finding_key(f): f.title for f in original_findings}
     total = len(original_findings)
@@ -233,7 +249,7 @@ def build_plan(fleet: Fleet, tools: ToolCatalog, *, fleet_label: str = "fleet") 
             if candidate in applied:
                 continue
             trial_findings = analyze_fleet(
-                apply_revocations(fleet, [*applied, candidate]), tools
+                apply_revocations(fleet, [*applied, candidate]), tools, rule_pack=rule_pack
             ).findings
             trial_keys = {_finding_key(f) for f in trial_findings}
             cleared = current_keys - trial_keys

@@ -7,6 +7,21 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **SoD policy-as-code — custom rule packs (`--rules`)**: a YAML pack extends
+  the built-in deterministic floor with an organization's own toxic
+  combinations, delegated-high-risk capabilities, and capability-class
+  vocabulary (high-impact / sensitive-read / untrusted-content / exfiltration
+  ids that feed the risk score and the lethal-trifecta check). Pack rules are
+  additive — the built-in floor is unchanged, pack findings are ordinary
+  deterministic findings carrying the pack's `rule_id` with automatic
+  control-framework annotation, and a rule naming tools absent from the loaded
+  catalog simply never fires (reported as an inert-rule note). `--rules` is
+  repeatable and works on `analyze`, `diff`, `simulate`, `remediate`, and
+  `policy generate`; malformed packs and built-in rule-id collisions fail
+  loudly. The eval golden set never loads packs, so the 1.000 gate is untouched
+  (a regression test asserts pack-free analysis is byte-identical). Ships
+  `examples/rules/finance_sod_pack.yaml`, a realistic finance/ERP conflict
+  matrix.
 - **Remediation simulation and planning (`steward simulate`, `steward
   remediate`)**: `simulate` applies hypothetical revocations (direct grants
   and/or delegation edges) to an in-memory fleet copy, re-runs the deterministic

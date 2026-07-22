@@ -1,0 +1,76 @@
+# Example Steward rule pack: a finance / ERP segregation-of-duties matrix.
+#
+# Rule packs let you bring your OWN toxic-combination matrix and capability
+# vocabulary. Everything here is additive on top of Steward's built-in floor —
+# the shipped rules are unchanged, and any rule naming a tool your catalog does
+# not contain simply never fires. Matching is by tool id (the same honest
+# limitation as the built-in rules).
+#
+# Apply it with:  steward analyze --rules examples/rules/finance_sod_pack.yaml
+
+name: Finance / ERP segregation-of-duties pack
+description: >-
+  Record-to-report, procure-to-pay, and treasury conflicts commonly enforced in
+  an ERP (SAP/Oracle-style) SoD ruleset, expressed against agent tool grants.
+
+toxic_combinations:
+  - rule_id: erp_post_and_approve_journal
+    tool_ids: [post_journal_entry, approve_journal_entry]
+    severity: critical
+    title: "Record-to-report SoD: post and approve the same journal entry"
+    business_risk: >-
+      An agent that can both post a journal entry and approve it can record and
+      self-certify financial adjustments with no independent review, the classic
+      route to a concealed misstatement.
+    recommended_action: >-
+      Split journal posting from journal approval across separately owned
+      identities, and require an independent approver for any manual entry.
+    control_mapping: "SOX ITGC — segregation of duties (journal posting vs. approval)"
+
+  - rule_id: erp_vendor_master_and_payment_run
+    tool_ids: [maintain_bank_master, release_payment_run]
+    severity: critical
+    title: "Treasury SoD: maintain bank master data and release payments"
+    business_risk: >-
+      Maintaining vendor/employee bank details and releasing the payment run in
+      one identity is a direct misappropriation path — bank details can be
+      changed and a payment released to them without a second pair of eyes.
+    recommended_action: >-
+      Keep bank-master maintenance and payment-run release in separate roles,
+      with dual control on the payment run itself.
+    control_mapping: "SOX ITGC — treasury segregation of duties"
+
+  - rule_id: p2p_create_po_and_post_goods_receipt
+    tool_ids: [create_purchase_order, post_goods_receipt]
+    severity: high
+    title: "Procure-to-pay SoD: raise a PO and confirm its goods receipt"
+    business_risk: >-
+      Raising a purchase order and confirming receipt of the goods breaks the
+      three-way match, letting an agent authorize payment for goods that were
+      never received.
+    recommended_action: >-
+      Separate purchase-order creation from goods-receipt confirmation, and
+      reconcile against an independent receiving record.
+    control_mapping: "SOX ITGC — procure-to-pay three-way-match segregation"
+
+delegated_high_risk:
+  - tool_id: release_payment_run
+    rule_id: delegated_payment_run_release
+    severity: high
+    title: "Delegated payment-run release blast radius"
+    business_risk: >-
+      An agent that does not hold payment-run release directly can still reach
+      it through delegation, extending disbursement authority through a
+      confused-deputy path.
+    recommended_action: >-
+      Remove or tightly scope the delegation path to the treasury agent and
+      expose only a reviewed payment workflow.
+    control_mapping: "Identity governance — effective access review and least privilege"
+
+# Extend the capability classes so scoring and the lethal-trifecta check
+# understand this client's finance vocabulary.
+capability_classes:
+  high_impact: [release_payment_run, approve_journal_entry, post_goods_receipt, maintain_bank_master]
+  sensitive_read: [read_general_ledger, read_bank_statements]
+  untrusted_content: [ingest_vendor_invoice_email]
+  exfiltration: [export_financial_report]
