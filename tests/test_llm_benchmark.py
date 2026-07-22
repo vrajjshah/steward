@@ -110,3 +110,11 @@ def test_run_live_rejects_non_positive_runs() -> None:
     # Guards before any model call, so this is CI-safe (no Bedrock).
     with pytest.raises(BenchmarkError, match="at least 1"):
         run_live(RESULTS_PATH, runs=0)
+
+
+def test_committed_cache_states_run_count() -> None:
+    # Provenance must say how many live runs produced the cache, so a reader
+    # never mistakes a single sample for an aggregate.
+    cached = json.loads(RESULTS_PATH.read_text(encoding="utf-8"))
+    assert isinstance(cached.get("runs"), int)
+    assert cached["runs"] >= 1

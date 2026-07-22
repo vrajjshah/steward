@@ -6,6 +6,11 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Changed
+- The cached benchmark result now records its run count in provenance (a `runs`
+  field, printed alongside the mode), so a reader never mistakes the committed
+  single-run numbers for an aggregate.
+
 ## [0.2.0] — 2026-07-21
 
 ### Added

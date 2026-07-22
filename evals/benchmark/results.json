@@ -4,6 +4,7 @@
  "disclosure": "This cached benchmark result was produced by a real OpenAI gpt-oss-120b Amazon Bedrock run of Steward's enrichment pipeline against the committed labeled scenario fleet. Replays and CI re-verify this cache; they never call Bedrock.",
  "generated_at": "2026-07-21T21:32:02+00:00",
  "enrichment_status": "complete",
+ "runs": 1,
  "scenario_outcomes": [
   {
    "agent_id": "support_export_bot",

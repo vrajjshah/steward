@@ -292,7 +292,9 @@ def score(
 def _print_report(report: Mapping[str, Any]) -> None:
     metrics = report["metrics"]
     print("Steward LLM-tier accuracy benchmark (non-gating; separate from the deterministic gate)")
-    print(f"mode: {report.get('mode', 'unknown')}")
+    runs = report.get("runs")
+    run_note = f" ({runs} run{'s' if runs != 1 else ''})" if runs else ""
+    print(f"mode: {report.get('mode', 'unknown')}{run_note}")
     print(
         f"in-scope toxic: flagged {metrics['true_positive']}/{metrics['in_scope_total']} "
         f"(recall={metrics['recall']:.3f})"
@@ -420,6 +422,9 @@ def run_live(output_path: Path = RESULTS_PATH, *, runs: int = 1) -> int:
         ),
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "enrichment_status": enrichment.get("status"),
+        # Always state how many live runs produced this cache, so a reader never
+        # has to guess whether the numbers are one sample or an aggregate.
+        "runs": runs,
         **report,
         "surfaced_findings": llm_findings,
     }
