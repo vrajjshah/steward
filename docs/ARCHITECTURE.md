@@ -114,6 +114,26 @@ request, but newly added risk does. This is a config-time snapshot diff, not an
 event log; a renamed agent id reads as one removal plus one addition, since ids
 are the only stable identity the graph has.
 
+### Remediation (`steward simulate` / `steward remediate`)
+
+`steward/remediation.py` closes the loop from *detect* to *do*. **Simulate**
+applies hypothetical revocations (direct grants and/or delegation edges) to an
+in-memory fleet copy and expresses the result as a `steward diff` of current →
+simulated — so the preview is recomputed facts, not an estimate, and reuses the
+R1 machinery. **Plan** builds a greedy minimal-revocation proposal: candidate
+actions are the grants and edges already cited in current findings, and each
+step picks the one clearing the most still-open findings, breaking ties by
+larger risk reduction, then a preference for **unused grants** (revoking access
+no observed workflow depends on — zero business impact, read from the
+usage/trace data), then a lexical order for determinism. It stops when findings
+are cleared or no single revocation helps.
+
+Nothing is ever mutated on disk, and the plan is explicitly a *proposal for
+human review*: it optimizes finding count and score, greedy is not provably
+minimal, and some findings (an ownerless agent; an over-privilege finding whose
+multiple unused grants must go together) fall outside a one-lever-per-step
+plan — each carries its own recommended action instead.
+
 ## 3. System architecture
 
 ```mermaid

@@ -24,6 +24,13 @@ from steward.policy_gen import generate_policy as build_policy
 from steward.policy_gen import load_policy, write_policy
 from steward.redaction import safe_json_dumps
 from steward.redteam import DemoMCPUpstream, run_exfiltration_scenario
+from steward.remediation import (
+    RemediationError,
+    Revocation,
+    build_plan,
+    render_plan,
+)
+from steward.remediation import simulate as run_simulation
 from steward.reporting import build_fleet_audit_report, render_markdown_report
 from steward.traces import TraceReconciliation, apply_usage, load_traces, reconcile
 
@@ -415,6 +422,75 @@ def diff(
                 err=True,
             )
             raise typer.Exit(code=1)
+
+
+@app.command()
+def simulate(
+    revoke: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--revoke",
+            help="Revoke a direct grant, 'agent_id:tool_id'. Repeatable.",
+        ),
+    ] = None,
+    revoke_edge: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--revoke-edge",
+            help="Revoke a delegation edge, 'source_agent->target_agent'. Repeatable.",
+        ),
+    ] = None,
+    fleet: Annotated[Path | None, typer.Option(help="Path to Steward fleet JSON.")] = None,
+    tools: Annotated[Path | None, typer.Option(help="Path to tool catalog JSON.")] = None,
+    mcp: Annotated[Path | None, typer.Option(help="Claude Desktop / Cursor mcp.json path.")] = None,
+    json_out: Annotated[
+        Path | None, typer.Option("--json", help="Write the simulated diff as JSON.")
+    ] = None,
+) -> None:
+    """Preview the effect of revoking grants/edges without changing anything on disk."""
+
+    revocations = [Revocation.parse_grant(spec) for spec in (revoke or [])]
+    revocations += [Revocation.parse_edge(spec) for spec in (revoke_edge or [])]
+    if not revocations:
+        raise typer.BadParameter("Provide at least one --revoke or --revoke-edge.")
+
+    loaded_fleet, loaded_tools, _ = _load_input(fleet, tools, mcp)
+    try:
+        diff_result = run_simulation(loaded_fleet, loaded_tools, revocations)
+    except RemediationError as exc:
+        raise typer.BadParameter(str(exc)) from exc
+
+    from steward.diffing import render_diff_summary
+
+    typer.echo(render_diff_summary(diff_result))
+    if json_out:
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        json_out.write_text(
+            json.dumps(diff_result.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8"
+        )
+        typer.echo(f"Wrote simulated diff JSON: {json_out}")
+
+
+@app.command()
+def remediate(
+    fleet: Annotated[Path | None, typer.Option(help="Path to Steward fleet JSON.")] = None,
+    tools: Annotated[Path | None, typer.Option(help="Path to tool catalog JSON.")] = None,
+    mcp: Annotated[Path | None, typer.Option(help="Claude Desktop / Cursor mcp.json path.")] = None,
+    json_out: Annotated[
+        Path | None, typer.Option("--json", help="Write the remediation plan as JSON.")
+    ] = None,
+) -> None:
+    """Propose a greedy minimal set of revocations to clear findings (human-reviewed)."""
+
+    loaded_fleet, loaded_tools, source = _load_input(fleet, tools, mcp)
+    plan = build_plan(loaded_fleet, loaded_tools, fleet_label=source)
+    typer.echo(render_plan(plan))
+    if json_out:
+        json_out.parent.mkdir(parents=True, exist_ok=True)
+        json_out.write_text(
+            json.dumps(plan.model_dump(mode="json"), indent=2) + "\n", encoding="utf-8"
+        )
+        typer.echo(f"Wrote remediation plan JSON: {json_out}")
 
 
 @app.command()

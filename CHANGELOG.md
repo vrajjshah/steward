@@ -7,6 +7,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Remediation simulation and planning (`steward simulate`, `steward
+  remediate`)**: `simulate` applies hypothetical revocations (direct grants
+  and/or delegation edges) to an in-memory fleet copy, re-runs the deterministic
+  analysis, and reports the result as a `steward diff` of current → simulated —
+  recomputed facts, not estimates. `remediate` proposes a greedy minimal
+  revocation set drawn from the levers cited in current findings, each step
+  clearing the most remaining findings, with ties broken toward larger risk
+  reduction and then toward unused (zero-business-impact) grants using observed
+  usage data. On the demo fleet, 5 revocations clear 7 of 9 deterministic
+  findings and drop fleet risk exposure from 451 to 88 (−80%). Nothing is ever
+  written to disk; the plan is a labeled proposal for human review (optimizes
+  finding count, not business feasibility; greedy is not provably minimal).
 - **Access change review (`steward diff`)**: compares two fleet snapshots
   deterministically — agents added/removed, owner changes, direct-grant and
   delegation deltas, effective-access expansions (flagging newly reachable

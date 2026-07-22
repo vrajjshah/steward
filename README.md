@@ -396,6 +396,29 @@ steward diff --before-fleet main.json --after-fleet pr.json --markdown review.md
 
 `--fail-on-new` is the change-review upgrade over `--fail-on`: it fires only for findings the change *introduced* at or above the threshold, so a backlog of known issues doesn't block unrelated pull requests while a newly granted toxic pair does. This is a config-time snapshot diff, not an event log — a renamed agent id reads as one removal plus one addition.
 
+### Decide what to actually revoke (`steward simulate` / `steward remediate`)
+
+Detection is only half of governance; the other half is *what do I do about it?* Both commands answer with recomputed facts — never estimates — and never touch anything on disk.
+
+`steward simulate` previews the effect of revoking grants or delegation edges by re-running the full analysis on a copy of the fleet and showing the change as a diff:
+
+```bash
+# What happens if this agent loses payment approval?
+steward simulate --revoke finance_bot:approve_payment
+# -> 3 delegated-payment-approval findings resolved, fleet risk 451 -> 304
+```
+
+`steward remediate` proposes a small, ordered revocation set: each step greedily clears the most remaining findings, breaking ties toward larger risk reduction and then toward **unused grants** (zero business impact — Steward reuses observed-usage data so the plan favors revocations no workflow depends on):
+
+```bash
+steward remediate
+# On the demo fleet: 9 deterministic findings -> 5 revocations clear 7 of them,
+# fleet risk exposure 451 -> 88 (-80%). The remaining two are an ownerless agent
+# (assign an owner) and an unused-standing-access finding (its own recommendation).
+```
+
+The plan is a **proposal for human review**: it optimizes finding count and risk score, not business feasibility, and greedy is not provably minimal. A person decides; nothing is applied automatically.
+
 ## How Steward compares
 
 Honest positioning — what Steward is next to the things it will be compared with:
