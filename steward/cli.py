@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.metadata
 import json
 from pathlib import Path
 from typing import Annotated
@@ -1007,8 +1008,22 @@ def campaign_close(
     )
 
 
+def _installed_version() -> str:
+    """Read the version from installed package metadata.
+
+    Hardcoding it here let the CLI drift from ``pyproject.toml``: 0.2.1 shipped
+    reporting "Steward 0.2.0". Metadata is the single source of truth, so a
+    version bump can no longer be half-applied.
+    """
+
+    try:
+        return importlib.metadata.version("steward-agent-governance")
+    except importlib.metadata.PackageNotFoundError:  # pragma: no cover - unusual
+        return "unknown (package metadata not found)"
+
+
 @app.command()
 def version() -> None:
     """Print the CLI version."""
 
-    typer.echo("Steward 0.2.0")
+    typer.echo(f"Steward {_installed_version()}")

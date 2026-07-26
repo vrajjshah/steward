@@ -6,6 +6,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **`steward version` now reads the installed package metadata** instead of a
+  hardcoded string. The literal was missed during the 0.2.1 bump, so 0.2.1
+  shipped reporting "Steward 0.2.0". A test now asserts the CLI version matches
+  `pyproject.toml`, so a half-applied bump fails the gate rather than the user.
+
 ## [0.2.1] — 2026-07-26
 
 ### Fixed

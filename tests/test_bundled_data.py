@@ -63,6 +63,29 @@ def test_wheel_declares_the_bundled_copies() -> None:
     assert include["data/demo_results.json"] == "steward/_bundled_data/demo_results.json"
 
 
+def test_cli_version_matches_pyproject() -> None:
+    """`steward version` must not drift from the packaged version.
+
+    Regression guard: the version string was hardcoded in cli.py, so 0.2.1
+    shipped to PyPI reporting "Steward 0.2.0" — a bump applied to
+    pyproject.toml but not to the CLI. It now reads installed metadata.
+    """
+
+    import tomllib
+
+    from typer.testing import CliRunner
+
+    from steward.cli import app
+
+    root = pathlib.Path(__file__).resolve().parent.parent
+    declared = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"][
+        "version"
+    ]
+    result = CliRunner().invoke(app, ["version"])
+    assert result.exit_code == 0
+    assert declared in result.output, f"CLI reported {result.output!r}, pyproject says {declared}"
+
+
 def test_bundled_demo_cache_is_the_committed_one() -> None:
     """A stale packaged copy would ship different findings than the repo."""
 
