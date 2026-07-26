@@ -1,5 +1,6 @@
 # Steward
 
+[![PyPI](https://img.shields.io/pypi/v/steward-agent-governance)](https://pypi.org/project/steward-agent-governance/)
 [![Live demo](https://img.shields.io/badge/live%20demo-online-brightgreen)](https://steward-production-19c1.up.railway.app/)
 [![Steward trust gate](https://github.com/vrajjshah/steward/actions/workflows/eval.yml/badge.svg)](https://github.com/vrajjshah/steward/actions/workflows/eval.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -29,12 +30,23 @@ Steward intentionally separates two kinds of signal:
 
 Every finding carries a visible source label so a reviewer can tell those tiers apart.
 
-## Run the two-minute demo
+## Install
 
 Requires Python 3.12+.
 
 ```bash
-git clone <your-fork-url>
+pipx install steward-agent-governance   # or: pip install steward-agent-governance
+steward analyze --mcp ~/Library/Application\ Support/Claude/claude_desktop_config.json --no-llm
+```
+
+That first analysis is fully deterministic: no cloud account, no API key, and nothing leaves your machine.
+
+## Run the two-minute demo
+
+To explore the dashboard against the bundled synthetic fleet, work from a clone:
+
+```bash
+git clone https://github.com/vrajjshah/steward.git
 cd steward
 python3.12 -m venv .venv
 source .venv/bin/activate

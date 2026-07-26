@@ -84,6 +84,7 @@ see the honest comparison in the [README](../README.md#how-steward-compares).
 
 | You are | Start with |
 |---|---|
+| Installing it | `pipx install steward-agent-governance` |
 | Evaluating quickly | `STEWARD_DEMO=1 make demo` → dashboard on `:8000`, no keys |
 | Reviewing your own MCP setup | `steward analyze --mcp path/to/claude_desktop_config.json --no-llm` |
 | Wiring a CI gate | `steward analyze --no-llm --fail-on high`, or `steward diff --fail-on-new high` to block only newly introduced findings |

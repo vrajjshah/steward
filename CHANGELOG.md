@@ -7,6 +7,13 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased]
 
 ### Added
+- **Published to PyPI**: `pipx install steward-agent-governance` (or `pip install`)
+  now installs the CLI, so a first analysis no longer requires cloning the repo.
+  Published through Trusted Publishing (OIDC) — no API token exists in the
+  repository or in CI. Verified by installing from PyPI into a clean
+  virtualenv and analyzing a real MCP config.
+- **Dependency and action updates tracked with Dependabot** (monthly, grouped);
+  every update PR must clear the same trust gate as any other change.
 - **Distribution-ready packaging**: PyPI metadata (trove classifiers, keywords,
   project URLs including the live demo), a PEP 561 `py.typed` marker so
   downstream users get Steward's type hints, and an sdist that ships the data,
