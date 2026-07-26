@@ -3,12 +3,12 @@
 [![PyPI](https://img.shields.io/pypi/v/steward-agent-governance)](https://pypi.org/project/steward-agent-governance/)
 [![Live demo](https://img.shields.io/badge/live%20demo-online-brightgreen)](https://steward-production-19c1.up.railway.app/)
 [![Steward trust gate](https://github.com/vrajjshah/steward/actions/workflows/eval.yml/badge.svg)](https://github.com/vrajjshah/steward/actions/workflows/eval.yml)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/vrajjshah/steward/blob/main/LICENSE)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue.svg)
 
 **See what your AI agents can actually do — including the dangerous paths hiding in their permissions.**
 
-[![Steward dashboard — a 30-agent fleet with 10 cited findings across two trust tiers](docs/dashboard.png)](https://steward-production-19c1.up.railway.app/)
+[![Steward dashboard — a 30-agent fleet with 10 cited findings across two trust tiers](https://raw.githubusercontent.com/vrajjshah/steward/main/docs/dashboard.png)](https://steward-production-19c1.up.railway.app/)
 
 **▶️ [Try the live demo](https://steward-production-19c1.up.railway.app/)** — a zero-key dashboard; nothing to install.
 
@@ -104,7 +104,7 @@ steward audit export --format jsonl --output steward-audit.jsonl
 Expected beat: `UNGUARDED: SUCCEEDED`, then `GUARDED: BLOCKED`, followed by
 `chain valid, N entries, head hash …`. The bundled scenario uses only a fake
 support case and never sends email. Its standalone artifacts live in
-[`examples/redteam/exfil`](examples/redteam/exfil).
+[`examples/redteam/exfil`](https://github.com/vrajjshah/steward/tree/main/examples/redteam/exfil).
 
 To demonstrate tamper detection without damaging the real local history, copy
 the state directory, mutate any byte in the copy's `audit.jsonl`, then verify
@@ -164,7 +164,7 @@ The Supabase source describes a scenario and mitigation work rather than a confi
 
 ## How it works
 
-> **📐 Full architecture, diagrams, and design decisions:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+> **📐 Full architecture, diagrams, and design decisions:** [`docs/ARCHITECTURE.md`](https://github.com/vrajjshah/steward/blob/main/docs/ARCHITECTURE.md)
 
 ```mermaid
 flowchart TB
@@ -200,7 +200,7 @@ The deterministic tier is the CI gate: it must retain perfect precision and reca
 
 ### Tier 2 — runtime model enrichment (optional live mode)
 
-The model tier is **backend-pluggable** — one module ([`steward/llm.py`](steward/llm.py)) with retries, timeouts, structured JSON parsing, a cost/latency-only logger, and the same redaction boundary on every backend. Select with `LLM_BACKEND`:
+The model tier is **backend-pluggable** — one module ([`steward/llm.py`](https://github.com/vrajjshah/steward/blob/main/steward/llm.py)) with retries, timeouts, structured JSON parsing, a cost/latency-only logger, and the same redaction boundary on every backend. Select with `LLM_BACKEND`:
 
 | `LLM_BACKEND` | What it talks to | Who it's for |
 | --- | --- | --- |
@@ -225,9 +225,9 @@ The configured runtime model can infer capability labels and propose additional 
 
 #### How accurate is the model tier?
 
-The model tier is measured on a committed, labeled 20-scenario benchmark ([`evals/benchmark/`](evals/benchmark)): 8 in-scope toxic sensitive-read + external-egress pairs, 8 engineered benign near-misses (internal-only delivery, draft-only senders, ticket creation, public sources), and 4 genuinely toxic pairs deliberately outside the v0.1 egress-only prompt scope. The benchmark fleet is deterministically silent, so every flag comes from the model tier.
+The model tier is measured on a committed, labeled 20-scenario benchmark ([`evals/benchmark/`](https://github.com/vrajjshah/steward/tree/main/evals/benchmark)): 8 in-scope toxic sensitive-read + external-egress pairs, 8 engineered benign near-misses (internal-only delivery, draft-only senders, ticket creation, public sources), and 4 genuinely toxic pairs deliberately outside the v0.1 egress-only prompt scope. The benchmark fleet is deterministically silent, so every flag comes from the model tier.
 
-On the cached live `gpt-oss-120b` run ([`evals/benchmark/results.json`](evals/benchmark/results.json)), the model tier flagged **8/8 in-scope toxic pairs (recall 1.000)** with **0/8 false positives (precision 1.000)** and **zero hallucinated citations**, and correctly declined to flag the 4 out-of-scope pairs its prompt assigns to the deterministic floor. This is a 20-scenario synthetic measurement from a single temperature-0 run — evidence the egress lens separates real toxic pairs from near-misses, not a real-world accuracy claim. `make llm-benchmark` re-verifies the committed result offline; `make llm-benchmark-live` reruns it against whatever backend and models `LLM_BACKEND`/`MODEL_*` select. Add `--live --runs N` to aggregate several runs into mean/min/max per metric, so the provenance shows spread rather than one sample. Details and limits: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#how-accurate-is-tier-2-actually).
+On the cached live `gpt-oss-120b` run ([`evals/benchmark/results.json`](https://github.com/vrajjshah/steward/blob/main/evals/benchmark/results.json)), the model tier flagged **8/8 in-scope toxic pairs (recall 1.000)** with **0/8 false positives (precision 1.000)** and **zero hallucinated citations**, and correctly declined to flag the 4 out-of-scope pairs its prompt assigns to the deterministic floor. This is a 20-scenario synthetic measurement from a single temperature-0 run — evidence the egress lens separates real toxic pairs from near-misses, not a real-world accuracy claim. `make llm-benchmark` re-verifies the committed result offline; `make llm-benchmark-live` reruns it against whatever backend and models `LLM_BACKEND`/`MODEL_*` select. Add `--live --runs N` to aggregate several runs into mean/min/max per metric, so the provenance shows spread rather than one sample. Details and limits: [`docs/ARCHITECTURE.md`](https://github.com/vrajjshah/steward/blob/main/docs/ARCHITECTURE.md#how-accurate-is-tier-2-actually).
 
 Getting started with either backend:
 
@@ -262,7 +262,7 @@ that boundary, including planted secrets in a denied tool call.
 
 ### Native fleet JSON
 
-Use the same compact shape as [`data/fleet.json`](data/fleet.json), plus a separate [`data/tools.json`](data/tools.json). Each agent has:
+Use the same compact shape as [`data/fleet.json`](https://github.com/vrajjshah/steward/blob/main/data/fleet.json), plus a separate [`data/tools.json`](https://github.com/vrajjshah/steward/blob/main/data/tools.json). Each agent has:
 
 ```json
 {
@@ -288,7 +288,7 @@ Steward includes a conservative MCP adapter:
 steward analyze --mcp ~/Library/Application\ Support/Claude/claude_desktop_config.json
 ```
 
-For a small registry of widely used servers — filesystem, GitHub, Slack, PostgreSQL, SQLite, fetch, Brave Search, Google Drive, memory, Puppeteer, Sentry — the adapter recognizes the **exact package identifier** in the server's `command`/`args` and imports that package's **documented capability set** as individual tools (e.g. the GitHub server becomes *read repositories*, *create/update issues and PRs*, and *push repository content* instead of one opaque bundle). That gives the analysis real read/write/egress texture to reason about. Honest limits, stated in every imported node and note: the mapping reflects the package's documented toolset, not runtime tool discovery; a different version, flag set, or allowlist may expose different tools; and a server merely *named* `github` is never assumed to be the GitHub server — only the package identifier matches. Unrecognized servers still import as one conservative server-level bundle. [`examples/claude_desktop_config.json`](examples/claude_desktop_config.json) is a realistic, credential-free sample that exercises both paths:
+For a small registry of widely used servers — filesystem, GitHub, Slack, PostgreSQL, SQLite, fetch, Brave Search, Google Drive, memory, Puppeteer, Sentry — the adapter recognizes the **exact package identifier** in the server's `command`/`args` and imports that package's **documented capability set** as individual tools (e.g. the GitHub server becomes *read repositories*, *create/update issues and PRs*, and *push repository content* instead of one opaque bundle). That gives the analysis real read/write/egress texture to reason about. Honest limits, stated in every imported node and note: the mapping reflects the package's documented toolset, not runtime tool discovery; a different version, flag set, or allowlist may expose different tools; and a server merely *named* `github` is never assumed to be the GitHub server — only the package identifier matches. Unrecognized servers still import as one conservative server-level bundle. [`examples/claude_desktop_config.json`](https://github.com/vrajjshah/steward/blob/main/examples/claude_desktop_config.json) is a realistic, credential-free sample that exercises both paths:
 
 ```bash
 steward analyze --mcp examples/claude_desktop_config.json --no-llm
@@ -298,7 +298,7 @@ If the dashboard is running with `STEWARD_DEMO=1`, loading a real fleet or MCP c
 
 #### Try the included MCP walkthrough
 
-The credential-free [`examples/mcp.json`](examples/mcp.json) is a safe way to exercise the adapter without copying a real configuration:
+The credential-free [`examples/mcp.json`](https://github.com/vrajjshah/steward/blob/main/examples/mcp.json) is a safe way to exercise the adapter without copying a real configuration:
 
 1. Start the dashboard with `STEWARD_DEMO=1 uvicorn steward.app:app --reload`.
 2. In **Bring your own fleet**, enter `examples/mcp.json` as the config path and select **MCP config (mcp.json)**.
@@ -311,7 +311,7 @@ unset STEWARD_DEMO
 steward analyze --mcp examples/mcp.json
 ```
 
-You can instead start the dashboard without `STEWARD_DEMO` and load the same file. [`tests/test_adapters.py`](tests/test_adapters.py) contains the automated proof: an offline recorded LLM-response fixture classifies the two unfamiliar server bundles and yields one graph-cited `LLM-generalized` finding. That is an integration regression test, not a real-Bedrock claim or a guarantee that every live model response will match it.
+You can instead start the dashboard without `STEWARD_DEMO` and load the same file. [`tests/test_adapters.py`](https://github.com/vrajjshah/steward/blob/main/tests/test_adapters.py) contains the automated proof: an offline recorded LLM-response fixture classifies the two unfamiliar server bundles and yields one graph-cited `LLM-generalized` finding. That is an integration regression test, not a real-Bedrock claim or a guarantee that every live model response will match it.
 
 The example intentionally contains no environment values, tokens, or live credentials. It demonstrates the import surface—not a claim that Steward discovered individual runtime tools from MCP.
 
@@ -332,7 +332,7 @@ steward import --format openai-agents --input agents.json --fleet-out fleet.json
 steward analyze --fleet fleet.json --tools tools.json
 ```
 
-Each reader maps the framework's declared delegation onto Steward's graph: LangGraph **edges**, CrewAI **`allow_delegation`** (delegate to any coworker) or an explicit `delegates_to`, and OpenAI Agents **`handoffs`** all become delegation edges, so a delegated toxic combination surfaces on the delegating agent. Credential-free examples ship under [`examples/frameworks/`](examples/frameworks/). Honest limits: a static export is metadata only — environment values and credential-like fields are redacted (tool entries keep only id/name/description), usage is marked unavailable so the over-privilege check won't fire on omitted telemetry, and the delegation edges are the framework's *declared* handoffs, not observed runtime behavior.
+Each reader maps the framework's declared delegation onto Steward's graph: LangGraph **edges**, CrewAI **`allow_delegation`** (delegate to any coworker) or an explicit `delegates_to`, and OpenAI Agents **`handoffs`** all become delegation edges, so a delegated toxic combination surfaces on the delegating agent. Credential-free examples ship under [`examples/frameworks/`](https://github.com/vrajjshah/steward/tree/main/examples/frameworks/). Honest limits: a static export is metadata only — environment values and credential-like fields are redacted (tool entries keep only id/name/description), usage is marked unavailable so the over-privilege check won't fire on omitted telemetry, and the delegation edges are the framework's *declared* handoffs, not observed runtime behavior.
 
 ### Runtime traces — the "Used" pillar
 
@@ -348,7 +348,7 @@ Observed usage fills the **Used** pillar for the agents that appear in the trace
 - **used but not granted** — an invocation outside the agent's *effective* access, reported as `DRIFT`: either the inventory is stale or the runtime is not enforcing it. This deliberately cannot be a finding — the citation verifier rejects evidence outside effective access by design — so it surfaces as reconciliation drift;
 - **used but not needed** — observed use of a capability the model tier inferred the declared purpose does not require; model-assisted review context, labelled as such.
 
-Events naming unknown agents or tools stay visible as drift lines (a retired identity still running is itself a governance signal). Tool-call arguments, results, and prompts are ignored at parse time and never retained — trace ingestion reads identity metadata only. [`examples/traces.jsonl`](examples/traces.jsonl) demonstrates all three signals against the demo fleet, and `--fail-on-drift` turns the drift signal into a non-zero exit for CI (see [Gate your own CI on Steward](#gate-your-own-ci-on-steward)). For continuous monitoring, `--notify-url` POSTs a redacted, metadata-only drift summary (agent/tool ids and counts, never payload data) to a webhook when drift is detected — standard library only, no dependency.
+Events naming unknown agents or tools stay visible as drift lines (a retired identity still running is itself a governance signal). Tool-call arguments, results, and prompts are ignored at parse time and never retained — trace ingestion reads identity metadata only. [`examples/traces.jsonl`](https://github.com/vrajjshah/steward/blob/main/examples/traces.jsonl) demonstrates all three signals against the demo fleet, and `--fail-on-drift` turns the drift signal into a non-zero exit for CI (see [Gate your own CI on Steward](#gate-your-own-ci-on-steward)). For continuous monitoring, `--notify-url` POSTs a redacted, metadata-only drift summary (agent/tool ids and counts, never payload data) to a webhook when drift is detected — standard library only, no dependency.
 
 ## Certification and IGA reporting
 
@@ -483,7 +483,7 @@ capability_classes:            # extend scoring + the lethal-trifecta vocabulary
 steward analyze --rules examples/rules/finance_sod_pack.yaml     # repeatable
 ```
 
-`--rules` works on `analyze`, `diff`, `simulate`, `remediate`, and `policy generate`. Pack rules are **additive**: the built-in floor is unchanged, pack findings are ordinary deterministic findings that carry your `rule_id` and get control-framework annotation for free, and the capability-class extensions feed the risk score and the lethal-trifecta check so both speak your tool vocabulary. Packs are portable — a rule naming a tool absent from the loaded catalog simply never fires (reported as an inert-rule note). Matching is by tool id, the same honest limitation as the built-in rules. A ready-to-adapt example ships at [`examples/rules/finance_sod_pack.yaml`](examples/rules/finance_sod_pack.yaml).
+`--rules` works on `analyze`, `diff`, `simulate`, `remediate`, and `policy generate`. Pack rules are **additive**: the built-in floor is unchanged, pack findings are ordinary deterministic findings that carry your `rule_id` and get control-framework annotation for free, and the capability-class extensions feed the risk score and the lethal-trifecta check so both speak your tool vocabulary. Packs are portable — a rule naming a tool absent from the loaded catalog simply never fires (reported as an inert-rule note). Matching is by tool id, the same honest limitation as the built-in rules. A ready-to-adapt example ships at [`examples/rules/finance_sod_pack.yaml`](https://github.com/vrajjshah/steward/blob/main/examples/rules/finance_sod_pack.yaml).
 
 ### Recurring certification campaigns
 
@@ -505,7 +505,7 @@ Rule-based checks catch *known* toxic patterns; peer analytics catches the *unkn
 
 > `report_bot` — Holds 3 effective tools (2 high-impact: delete_records, export_data), but overlaps at most 25% with any peer (closest: bi_bot) — an access profile unlike the rest of the fleet, worth a look for over-grant.
 
-This is a **heuristic analytics section, not a finding** — an unusual access profile is a statistical signal, not a specific policy violation, so (like the Granted-vs-Needed reconciliation) it never enters the citation-gated findings set and Steward's four `check_type`s stay closed. Honest limit: on a small fleet, "unlike its peers" is indicative, not statistical — a legitimately unique role reads the same as a mistake. All thresholds live in one documented place in [`steward/peer_analysis.py`](steward/peer_analysis.py).
+This is a **heuristic analytics section, not a finding** — an unusual access profile is a statistical signal, not a specific policy violation, so (like the Granted-vs-Needed reconciliation) it never enters the citation-gated findings set and Steward's four `check_type`s stay closed. Honest limit: on a small fleet, "unlike its peers" is indicative, not statistical — a legitimately unique role reads the same as a mistake. All thresholds live in one documented place in [`steward/peer_analysis.py`](https://github.com/vrajjshah/steward/blob/main/steward/peer_analysis.py).
 
 ## How Steward compares
 
@@ -538,13 +538,13 @@ cited route, and a signed record proving the demonstration decision occurred.
 
 ## Documentation
 
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — architecture, diagrams, and the design decisions behind the trust model
-- [`docs/COST.md`](docs/COST.md) — measured per-analysis model cost and the architecture changes at 100/1K/10K/100K analyses
-- [`docs/USERS.md`](docs/USERS.md) — who Steward serves, who it doesn't (yet), and why this is an automation problem
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — development setup and the trust-gate philosophy
-- [`SECURITY.md`](SECURITY.md) — security guarantees and how to report a vulnerability
-- [`CHANGELOG.md`](CHANGELOG.md) — release notes
+- [`docs/ARCHITECTURE.md`](https://github.com/vrajjshah/steward/blob/main/docs/ARCHITECTURE.md) — architecture, diagrams, and the design decisions behind the trust model
+- [`docs/COST.md`](https://github.com/vrajjshah/steward/blob/main/docs/COST.md) — measured per-analysis model cost and the architecture changes at 100/1K/10K/100K analyses
+- [`docs/USERS.md`](https://github.com/vrajjshah/steward/blob/main/docs/USERS.md) — who Steward serves, who it doesn't (yet), and why this is an automation problem
+- [`CONTRIBUTING.md`](https://github.com/vrajjshah/steward/blob/main/CONTRIBUTING.md) — development setup and the trust-gate philosophy
+- [`SECURITY.md`](https://github.com/vrajjshah/steward/blob/main/SECURITY.md) — security guarantees and how to report a vulnerability
+- [`CHANGELOG.md`](https://github.com/vrajjshah/steward/blob/main/CHANGELOG.md) — release notes
 
 ## License
 
-[MIT](LICENSE)
+[MIT](https://github.com/vrajjshah/steward/blob/main/LICENSE)
