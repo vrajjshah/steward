@@ -6,6 +6,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.2.1] — 2026-07-26
+
 ### Fixed
 - **`steward analyze` and `steward serve --demo` now work from a plain
   `pip install`.** Both resolved their default fleet, tool catalog, and demo
@@ -264,6 +266,7 @@ First public release.
   at the model as `[REDACTED]`; the committed demo cache now records complete
   (34/34) tool classification. Credential-shaped strings are still masked.
 
-[Unreleased]: https://github.com/vrajjshah/steward/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/vrajjshah/steward/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/vrajjshah/steward/releases/tag/v0.2.1
 [0.2.0]: https://github.com/vrajjshah/steward/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/vrajjshah/steward/releases/tag/v0.1.0
