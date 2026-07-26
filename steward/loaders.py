@@ -13,6 +13,22 @@ class InventoryValidationError(ValueError):
     """Raised when fleet references cannot be resolved against the catalog."""
 
 
+def bundled_data_dir() -> Path:
+    """Locate the bundled synthetic fleet, tool catalog, and demo cache.
+
+    A source checkout keeps these at ``<repo>/data``.  An installed wheel
+    carries a copy inside the package, so ``steward analyze`` and
+    ``steward serve --demo`` work for someone who ran ``pip install`` and
+    never cloned the repository.  Lives here rather than in the web service so
+    the CLI can resolve defaults without importing the FastAPI stack.
+    """
+
+    checkout = Path(__file__).resolve().parent.parent / "data"
+    if checkout.is_dir():
+        return checkout
+    return Path(__file__).resolve().parent / "_bundled_data"
+
+
 def _read_json(path: str | Path) -> Any:
     source = Path(path)
     try:

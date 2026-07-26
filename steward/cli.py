@@ -29,7 +29,7 @@ from steward.diffing import (
 )
 from steward.enforce import create_enforcement_app
 from steward.ledger import AuditLedger, LedgerError, LedgerKeyError
-from steward.loaders import load_inventory
+from steward.loaders import bundled_data_dir, load_inventory
 from steward.models import Fleet, ToolCatalog
 from steward.notify import NotifyError, build_drift_payload, post_drift_notification
 from steward.pipeline import analyze_fleet
@@ -80,8 +80,12 @@ app.add_typer(redteam_app, name="redteam")
 app.add_typer(campaign_app, name="campaign")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_FLEET = PROJECT_ROOT / "data" / "fleet.json"
-DEFAULT_TOOLS = PROJECT_ROOT / "data" / "tools.json"
+# Resolved through the same helper the web service uses, so the bundled
+# synthetic fleet is found both in a source checkout (<repo>/data) and in an
+# installed wheel (packaged copy) — `steward analyze` must work after a plain
+# `pip install`, without a clone.
+DEFAULT_FLEET = bundled_data_dir() / "fleet.json"
+DEFAULT_TOOLS = bundled_data_dir() / "tools.json"
 DEFAULT_LEDGER_STATE = Path(".steward")
 
 

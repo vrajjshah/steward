@@ -6,6 +6,18 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Fixed
+- **`steward analyze` and `steward serve --demo` now work from a plain
+  `pip install`.** Both resolved their default fleet, tool catalog, and demo
+  cache relative to the repository root, so an installed wheel (no clone) hit a
+  missing `data/fleet.json`: `analyze` exited with a file-not-found error and
+  the dashboard rendered with no findings — on the first commands the README
+  tells a new user to run. The wheel now carries a copy of those three files at
+  `steward/_bundled_data/`, and one shared resolver prefers the checkout copy
+  when present. Verified by installing the built wheel into a clean virtualenv
+  and running both commands; regression tests cover the resolver, the shared
+  CLI/web-service path, and the packaging config that makes the fallback exist.
+
 ### Added
 - **Published to PyPI**: `pipx install steward-agent-governance` (or `pip install`)
   now installs the CLI, so a first analysis no longer requires cloning the repo.

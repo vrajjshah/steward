@@ -14,10 +14,19 @@ Requires Python 3.12+.
 ```bash
 git clone https://github.com/vrajjshah/steward.git
 cd steward
-python3.12 -m venv .venv
+uv sync --all-extras          # `uv sync` alone omits [dev] — no pytest, no ruff
 source .venv/bin/activate
-pip install -e ".[dev]"
 ```
+
+Without `uv`, the equivalent is:
+
+```bash
+python3.12 -m venv .venv && source .venv/bin/activate && pip install -e ".[dev]"
+```
+
+If you change the version in `pyproject.toml`, regenerate the lockfile
+(`uv sync`) in the same commit — a stale `uv.lock` pins the old version and
+fails the release workflow's tag/version check.
 
 ## The checks you must pass
 

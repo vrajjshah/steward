@@ -22,6 +22,7 @@ from typing import Any
 
 from steward.incident_grounding import ground_findings_in_real_world_context
 from steward.ledger import AuditLedger, LedgerError
+from steward.loaders import bundled_data_dir
 from steward.reporting import (
     as_dict,
     build_fleet_audit_report,
@@ -47,15 +48,15 @@ def _project_root() -> Path:
 
 
 def _default_fleet_path() -> Path:
-    return _project_root() / "data" / "fleet.json"
+    return bundled_data_dir() / "fleet.json"
 
 
 def _default_tools_path() -> Path:
-    return _project_root() / "data" / "tools.json"
+    return bundled_data_dir() / "tools.json"
 
 
 def _default_demo_path() -> Path:
-    return _project_root() / "data" / "demo_results.json"
+    return bundled_data_dir() / "demo_results.json"
 
 
 def _public_mode() -> bool:

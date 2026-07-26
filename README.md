@@ -8,6 +8,8 @@
 
 **See what your AI agents can actually do — including the dangerous paths hiding in their permissions.**
 
+If you have AI agents wired to tools — MCP servers in Claude Desktop or Cursor, a LangGraph or CrewAI project, an OpenAI Agents SDK app — then you have an **agent fleet**: a set of non-human identities holding standing permissions, often able to hand work to each other. Steward reviews that fleet the way an identity team reviews employee access.
+
 [![Steward dashboard — a 30-agent fleet with 10 cited findings across two trust tiers](https://raw.githubusercontent.com/vrajjshah/steward/main/docs/dashboard.png)](https://steward-production-19c1.up.railway.app/)
 
 **▶️ [Try the live demo](https://steward-production-19c1.up.railway.app/)** — a zero-key dashboard; nothing to install.
@@ -36,21 +38,27 @@ Requires Python 3.12+.
 
 ```bash
 pipx install steward-agent-governance   # or: pip install steward-agent-governance
+
+steward analyze --no-llm     # analyze the bundled 30-agent synthetic fleet
+steward serve --demo         # dashboard on http://127.0.0.1:8000
+```
+
+Both work straight from the install — the synthetic fleet and demo cache ship in the package. To point it at your own agents:
+
+```bash
 steward analyze --mcp ~/Library/Application\ Support/Claude/claude_desktop_config.json --no-llm
 ```
 
-That first analysis is fully deterministic: no cloud account, no API key, and nothing leaves your machine.
+Every command above is fully deterministic: no cloud account, no API key, and nothing leaves your machine.
 
 ## Run the two-minute demo
 
-To explore the dashboard against the bundled synthetic fleet, work from a clone:
+`steward serve --demo` is the quickest path. To hack on Steward itself, work from a clone:
 
 ```bash
 git clone https://github.com/vrajjshah/steward.git
 cd steward
-python3.12 -m venv .venv
-source .venv/bin/activate
-pip install -e ".[dev]"
+uv sync --all-extras     # or: python3.12 -m venv .venv && pip install -e ".[dev]"
 STEWARD_DEMO=1 uvicorn steward.app:app --reload
 ```
 
